@@ -127,7 +127,7 @@
                 let badgeTxt = "MOVIE";
                 let badgeCls = "badge badge-movie";
                 if (category === 'tv') { badgeTxt = "TV SHOW"; badgeCls = "badge badge-tv"; }
-                else if (item.runtime <= 45 || selectedType === 'short') { badgeTxt = "SHORT"; badgeCls = "badge badge-short"; }
+                else if (selectedType === 'short') { badgeTxt = "SHORT"; badgeCls = "badge badge-short"; }
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.innerHTML = `
@@ -152,14 +152,13 @@
 
             let videoId = '';
             if (isShort) {
-                // Prioritas Film Pendek: Cari yang namanya ada "Full", "Film", atau "Clip" (Bukan Trailer)
-                const fullVideo = videos.find(v => v.site === 'YouTube' && (v.name.toLowerCase().includes('full') || v.name.toLowerCase().includes('short film'))) || 
-                                  videos.find(v => v.site === 'YouTube' && v.type === 'Featurette') || 
-                                  videos.find(v => v.site === 'YouTube' && v.type === 'Clip') || 
-                                  videos[0];
-                videoId = fullVideo ? fullVideo.key : '';
+                // LOGIKA BARU FILM PENDEK:
+                // Cari video yang judulnya TIDAK mengandung kata "Trailer" atau "Teaser"
+                const actualShort = videos.find(v => v.site === 'YouTube' && !v.name.toLowerCase().includes('trailer') && !v.name.toLowerCase().includes('teaser')) || 
+                                    videos.find(v => v.site === 'YouTube' && v.name.toLowerCase().includes('full')) || 
+                                    videos[0]; // Jika terpaksa, ambil yang ada
+                videoId = actualShort ? actualShort.key : '';
             } else {
-                // Prioritas Layar Lebar: Official Trailer
                 const officialTrailer = videos.find(v => v.type === 'Trailer' && v.name.toLowerCase().includes('official')) || 
                                         videos.find(v => v.type === 'Trailer') || 
                                         videos[0];
@@ -170,10 +169,10 @@
             let streamLink = `https://vidsrc.to/embed/${category}/${id}`;
             let downloadLink = `https://dl.vidsrc.vip/${category}/${id}`;
 
-            // Jika Short Film, link nonton dan download mengacu ke ID YouTube yang ditemukan
             if (isShort && videoId) {
+                // Untuk Film Pendek, Nonton dan Download Langsung dari Sumber Video yang Ditemukan
                 streamLink = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-                downloadLink = `https://en.savefrom.net/1-youtube-video-downloader-385/v/${videoId}`;
+                downloadLink = `https://9xbud.com/youtube.com/watch?v=${videoId}`; // Downloader YouTube lebih stabil
             }
 
             document.getElementById('modalContent').innerHTML = `
@@ -193,8 +192,8 @@
                     <div class="flex flex-col gap-2">
                         <button onclick="playNow('${streamLink}')" class="w-full bg-blue-600 py-4 rounded text-xs font-black italic uppercase tracking-widest">Watch Now</button>
                         <div class="flex gap-2">
-                            <a href="${downloadLink}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded text-[10px] font-black uppercase">Download HD</a>
-                            <a href="https://flashstream.cc/download/${id}" target="_blank" class="flex-1 bg-white/5 border border-white/10 text-center py-3 rounded text-[10px] font-black uppercase tracking-tighter">Mirror</a>
+                            <a href="${downloadLink}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded text-[10px] font-black uppercase">Download Video</a>
+                            <a href="https://flashstream.cc/download/${id}" target="_blank" class="flex-1 bg-white/5 border border-white/10 text-center py-3 rounded text-[10px] font-black uppercase tracking-tighter">Mirror Server</a>
                         </div>
                     </div>
                 </div>`;
@@ -207,4 +206,38 @@
             const index = favoriteList.findIndex(f => f.id === id);
             if(index > -1) favoriteList.splice(index, 1);
             else favoriteList.push({id, title, poster});
-            localStorage.setItem('amnes_favorites',
+            localStorage.setItem('amnes_favorites', JSON.stringify(favoriteList));
+            e.target.closest('i').classList.toggle('fav-active');
+        }
+        function showFavorites() {
+            document.getElementById('homeBtn').classList.remove('hidden');
+            document.getElementById('paginationArea').classList.add('hidden');
+            const grid = document.getElementById('movieGrid');
+            grid.innerHTML = '<h2 class="col-span-full text-center py-4 font-black text-blue-500 uppercase tracking-widest italic">❤ My Favorites</h2>';
+            if(favoriteList.length === 0) { grid.innerHTML += '<p class="col-span-full text-center py-20 text-gray-700 uppercase text-xs">Empty</p>'; return; }
+            favoriteList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.innerHTML = `<img src="${IMG_BASE_URL + item.poster}" class="w-full aspect-[2/3] object-cover" onclick="showDetail(${item.id}, 'movie')"><div class="p-2 font-black text-[10px] truncate uppercase text-center">${item.title}</div>`;
+                grid.appendChild(card);
+            });
+        }
+        async function searchMoviesOnly() {
+            const query = document.getElementById('searchInput').value;
+            if (!query) return;
+            document.getElementById('movieGrid').innerHTML = '<div class="col-span-full text-center py-20 text-blue-500 font-bold uppercase animate-pulse">Searching Hub...</div>';
+            const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`);
+            const data = await res.json();
+            const results = data.results.filter(m => m.genre_ids && m.genre_ids.includes(16));
+            renderDisplay(results, false, 'movie', '');
+        }
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
+        document.getElementById('searchBtn').addEventListener('click', searchMoviesOnly);
+        document.getElementById('loadMoreBtn').addEventListener('click', () => { currentPage++; fetchHub(currentPage, true); });
+        document.querySelectorAll('select').forEach(s => s.addEventListener('change', () => fetchHub(1, false)));
+        window.onclick = (e) => { if (e.target.className === 'modal') { closeModal('movieModal'); closeModal('auntModal'); } }
+        fetchHub();
+    </script>
+</body>
+</html>
