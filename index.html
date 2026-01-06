@@ -3,25 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amnesfubbia - Animation Hub</title>
+    <title>Amnesfubbia - Animation Hub Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background-color: #060606; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
+        
+        /* Movie Card & Hover */
         .movie-card { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 12px; overflow: hidden; background: #111; height: 100%; cursor: pointer; position: relative; border: 1px solid transparent; }
         .movie-card:hover { transform: scale(1.05); border-color: #3b82f6; z-index: 10; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2); }
         
+        /* Badges - Warna Berbeda & Jelas */
         .new-badge { position: absolute; top: 8px; right: 8px; background: #ff0000; color: white; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; box-shadow: 0 0 10px rgba(255,0,0,0.5); }
         .type-badge-movie { position: absolute; top: 8px; left: 8px; background: #3b82f6; color: white; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; }
         .type-badge-tv { position: absolute; top: 8px; left: 8px; background: #8b5cf6; color: white; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; }
         .type-badge-short { position: absolute; top: 8px; left: 8px; background: #10b981; color: white; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; }
         
-        .fav-btn { position: absolute; bottom: 8px; left: 8px; color: white; font-size: 14px; z-index: 30; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); transition: 0.3s; }
-        .fav-btn.active { color: #ef4444; transform: scale(1.2); }
-
+        /* Studio Buttons */
         .studio-btn { min-width: 85px; height: 35px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; display: flex; items-center; justify-content: center; cursor: pointer; transition: 0.3s; font-size: 9px; font-weight: 900; color: #ccc; text-transform: uppercase; flex-shrink: 0; }
         .studio-btn:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
+
+        .fav-btn { position: absolute; bottom: 8px; left: 8px; color: white; font-size: 14px; z-index: 30; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); transition: 0.3s; }
+        .fav-btn.active { color: #ef4444; transform: scale(1.2); }
 
         .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.98); overflow-y: auto; backdrop-filter: blur(25px); }
         .search-container { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -65,7 +69,7 @@
                     <option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="DE">Germany</option>
                     <option value="ES">Spain</option><option value="IT">Italy</option><option value="RU">Russia</option>
                     <option value="BR">Brazil</option><option value="MX">Mexico</option><option value="AU">Australia</option>
-                    <option value="IE">Ireland</option><option value="DK">Denmark</option><option value="FI">Finland</option>
+                    <option value="IE">Ireland</option><option value="DK">Denmark</option>
                 </select>
                 <select id="yearFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded-lg outline-none text-white text-[10px] min-w-[100px]">
                     <option value="">Year</option>
@@ -78,7 +82,9 @@
 
     <main class="container mx-auto px-2 pt-48 pb-10">
         <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"></div>
-        <div class="flex justify-center mt-12 mb-10"><button id="loadMoreBtn" onclick="loadMore()" class="bg-blue-600 px-12 py-4 rounded-full text-xs font-black uppercase tracking-widest shadow-xl">Load More</button></div>
+        <div class="flex justify-center mt-12 mb-10">
+            <button id="loadMoreBtn" onclick="loadMore()" class="bg-blue-600 px-12 py-4 rounded-full text-xs font-black uppercase tracking-widest shadow-xl">Load More</button>
+        </div>
     </main>
 
     <div id="movieModal" class="modal flex items-center justify-center p-2">
@@ -121,19 +127,17 @@
         function displayMovies(movies, append = false) {
             const grid = document.getElementById('movieGrid');
             if (!append) grid.innerHTML = '';
-            const filterType = document.getElementById('typeFilter').value;
+            const activeFilter = document.getElementById('typeFilter').value;
 
             movies?.forEach(item => {
                 if(!item.poster_path) return;
                 const year = (item.release_date || item.first_air_date || '').split('-')[0];
                 const isTV = item.name !== undefined;
                 
-                // FIXED LOGIKA BADGE
+                // Logic Badge (Short/Movie/TV)
                 let displayType = isTV ? 'TV SHOW' : 'MOVIE';
                 let badgeClass = isTV ? 'type-badge-tv' : 'type-badge-movie';
-                
-                // Jika sedang di filter Short ATAU runtime terdeteksi kecil (untuk hasil search)
-                if (filterType === 'short' || (!isTV && item.runtime > 0 && item.runtime <= 45)) {
+                if (activeFilter === 'short' || (!isTV && item.runtime > 0 && item.runtime <= 45)) {
                     displayType = 'SHORT';
                     badgeClass = 'type-badge-short';
                 }
@@ -194,21 +198,19 @@
             const isShort = (movie.runtime && movie.runtime <= 45);
             let video = movie.videos.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
             
-            // SMART EMBED SYSTEM
+            // Final Video Logic: Prioritas Trailer ID, Fallback ke Search
             let finalVideoSrc;
             if (video) {
-                // Gunakan Trailer Asli TMDB jika ada (Paling stabil)
-                finalVideoSrc = `https://www.youtube.com/embed/${video.key}?autoplay=1&modestbranding=1`;
+                finalVideoSrc = `https://www.youtube.com/embed/${video.key}?autoplay=1&modestbranding=1&rel=0`;
             } else {
-                // Fallback ke pencarian jika tidak ada trailer di database
                 const cleanTitle = (movie.title || movie.name).replace(/[^a-zA-Z0-9 ]/g, "");
-                const searchTerms = encodeURIComponent(cleanTitle + (isShort ? " full animation film" : " animation trailer"));
+                const searchTerms = encodeURIComponent(cleanTitle + (isShort ? " full animation movie" : " animation trailer"));
                 finalVideoSrc = `https://www.youtube.com/embed?listType=search&list=${searchTerms}&autoplay=1`;
             }
 
             let castHtml = '';
-            movie.credits.cast.slice(0, 8).forEach(person => {
-                if(person.profile_path) castHtml += `<div class="text-center min-w-[70px] cursor-pointer" onclick="searchByActor('${person.name}')"><img src="${IMG_URL + person.profile_path}" class="w-12 h-12 rounded-full border-2 border-blue-500 mx-auto mb-1 object-cover hover:scale-110 transition"><p class="text-[7px] font-black text-white truncate w-14 mx-auto">${person.name}</p></div>`;
+            movie.credits.cast.slice(0, 8).forEach(p => {
+                if(p.profile_path) castHtml += `<div class="text-center min-w-[70px] cursor-pointer" onclick="searchByActor('${p.name}')"><img src="${IMG_URL + p.profile_path}" class="w-12 h-12 rounded-full border-2 border-blue-500 mx-auto mb-1 object-cover hover:scale-110 transition"><p class="text-[7px] font-black text-white truncate w-14 mx-auto">${p.name}</p></div>`;
             });
 
             content.innerHTML = `
@@ -223,13 +225,11 @@
                 <div class="md:w-2/3 p-8">
                     <h2 class="text-4xl font-black text-white uppercase italic mb-2 tracking-tighter leading-none">${movie.title || movie.name}</h2>
                     <p class="text-[10px] text-blue-400 font-black mb-6 uppercase">⭐ ${movie.vote_average.toFixed(1)} | ${movie.runtime || 'Short'} MIN | ${movie.release_date || movie.first_air_date}</p>
-                    <div class="mb-8">
-                        <div class="rounded-2xl overflow-hidden border border-white/10 aspect-video bg-black">
-                            <iframe id="youtubePlayer" class="w-full h-full" src="${finalVideoSrc}" frameborder="0" allowfullscreen allow="autoplay"></iframe>
-                        </div>
+                    <div class="mb-8 rounded-2xl overflow-hidden border border-white/10 aspect-video bg-black">
+                        <iframe class="w-full h-full" src="${finalVideoSrc}" frameborder="0" allowfullscreen allow="autoplay"></iframe>
                     </div>
                     <div class="mb-6">
-                        <p class="text-[10px] font-black text-gray-500 uppercase mb-3 tracking-widest">Voice Cast (Click to see more)</p>
+                        <p class="text-[10px] font-black text-gray-500 uppercase mb-3 tracking-widest">Voice Cast (Click to find more)</p>
                         <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">${castHtml}</div>
                     </div>
                     <p class="text-[12px] text-gray-400 italic">"${movie.overview || 'No description available.'}"</p>
@@ -242,8 +242,8 @@
 
         async function loadTvSeasons(id, seasons) {
             const container = document.getElementById('tvContainer');
-            const validSeasons = seasons.filter(s => s.season_number > 0);
-            container.innerHTML = `<div class="mt-6 bg-white/5 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-black text-blue-400 uppercase mb-3">Seasons</p><select id="seasonSelect" onchange="loadEpisodes(${id})" class="w-full bg-black text-[10px] p-2.5 rounded-lg mb-3 border border-white/10">${validSeasons.map(s => `<option value="${s.season_number}">${s.name}</option>`).join('')}</select><div id="episodeList" class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto scrollbar-hide"></div></div>`;
+            const valid = seasons.filter(s => s.season_number > 0);
+            container.innerHTML = `<div class="mt-6 bg-white/5 p-4 rounded-2xl border border-white/10"><p class="text-[10px] font-black text-blue-400 uppercase mb-3">Seasons</p><select id="seasonSelect" onchange="loadEpisodes(${id})" class="w-full bg-black text-[10px] p-2.5 rounded-lg mb-3 border border-white/10">${valid.map(s => `<option value="${s.season_number}">${s.name}</option>`).join('')}</select><div id="episodeList" class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto scrollbar-hide"></div></div>`;
             loadEpisodes(id);
         }
 
@@ -255,8 +255,8 @@
         }
 
         function toggleFav(item) {
-            const index = favorites.findIndex(f => f.id === item.id);
-            if(index === -1) { favorites.push(item); } else { favorites.splice(index, 1); }
+            const idx = favorites.findIndex(f => f.id === item.id);
+            if(idx === -1) favorites.push(item); else favorites.splice(idx, 1);
             localStorage.setItem('amnesFavs', JSON.stringify(favorites));
             resetAndLoad();
         }
