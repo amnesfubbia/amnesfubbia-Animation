@@ -9,12 +9,15 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background-color: #060606; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; }
-        .movie-card { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 12px; overflow: hidden; background: #111; height: 100%; cursor: pointer; position: relative; border: 1px solid transparent; }
+        .movie-card { transition: transform 0.3s ease; border-radius: 12px; overflow: hidden; background: #111; cursor: pointer; position: relative; border: 1px solid transparent; }
         .movie-card:hover { transform: scale(1.05); border-color: #3b82f6; z-index: 10; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2); }
-        .new-badge { position: absolute; top: 8px; right: 8px; background: #ef4444; color: white; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+        .new-badge { position: absolute; top: 8px; right: 8px; background: #ef4444; color: white; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; z-index: 20; }
         .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.98); overflow-y: auto; backdrop-filter: blur(25px); }
-        .search-container { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(25px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .search-container { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .cast-card { flex: 0 0 80px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .cast-card:hover { transform: scale(1.1); }
+        .cast-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #3b82f6; margin: 0 auto 5px; }
         #modalBackdrop { position: absolute; inset: 0; background-size: cover; background-position: center; filter: blur(80px) brightness(0.1); opacity: 0.8; z-index: -1; }
     </style>
 </head>
@@ -25,7 +28,7 @@
             <div class="flex items-center gap-2">
                 <span class="text-xl font-black text-blue-500 italic shrink-0 cursor-pointer" onclick="location.reload()">AMNESFUBBIA</span>
                 <div class="relative flex-grow">
-                    <input type="text" id="searchInput" placeholder="Search animation..." class="w-full bg-[#000]/60 p-2.5 pl-4 rounded-xl border border-white/10 outline-none focus:border-blue-500 text-white text-xs transition-all">
+                    <input type="text" id="searchInput" placeholder="Search animation or actor..." class="w-full bg-[#000]/60 p-2.5 pl-4 rounded-xl border border-white/10 outline-none focus:border-blue-500 text-white text-xs transition-all">
                 </div>
                 <button onclick="searchMoviesOnly()" class="bg-blue-600 px-5 py-2.5 rounded-xl font-black text-xs uppercase hover:bg-blue-700 transition">Search</button>
             </div>
@@ -52,7 +55,7 @@
     <main class="container mx-auto px-2 pt-36 pb-10">
         <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"></div>
         <div class="flex justify-center mt-12 mb-10">
-            <button onclick="loadMore()" class="bg-blue-600 px-12 py-4 rounded-full text-xs font-black uppercase tracking-widest shadow-xl">Load More</button>
+            <button onclick="loadMore()" class="bg-blue-600 px-12 py-4 rounded-full text-xs font-black uppercase tracking-widest">Load More</button>
         </div>
     </main>
 
@@ -91,16 +94,15 @@
             if (!append) grid.innerHTML = '';
             movies.forEach(item => {
                 if(!item.poster_path) return;
-                const releaseYear = (item.release_date || item.first_air_date || '').split('-')[0];
+                const year = (item.release_date || item.first_air_date || '').split('-')[0];
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.onclick = () => showDetail(item.id, item.name ? 'tv' : 'movie');
                 card.innerHTML = `
-                    ${releaseYear >= 2025 ? '<div class="new-badge">NEW</div>' : ''}
-                    <div class="relative"><img src="${IMG_URL + item.poster_path}" class="w-full aspect-[2/3] object-cover">
-                    <div class="absolute bottom-2 right-2 bg-black/80 text-yellow-400 text-[9px] px-2 py-0.5 rounded font-black">★ ${item.vote_average.toFixed(1)}</div></div>
+                    ${year >= 2025 ? '<div class="new-badge">NEW</div>' : ''}
+                    <img src="${IMG_URL + item.poster_path}" class="w-full aspect-[2/3] object-cover">
                     <div class="p-3"><h3 class="text-[10px] font-black truncate uppercase text-gray-100">${item.title || item.name}</h3>
-                    <p class="text-[9px] text-gray-500 font-bold uppercase">${releaseYear || 'TBA'}</p></div>`;
+                    <p class="text-[9px] text-gray-500 font-bold uppercase">${year || 'TBA'}</p></div>`;
                 grid.appendChild(card);
             });
         }
@@ -110,59 +112,14 @@
             if (!query) return;
             const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
             const data = await res.json();
-            displayMovies(data.results.filter(m => m.genre_ids && m.genre_ids.includes(16)));
+            displayMovies(data.results.filter(m => m.genre_ids && m.genre_ids.includes(16) || m.known_for));
         }
 
         async function showDetail(id, type) {
             const modal = document.getElementById('movieModal');
             const content = document.getElementById('modalContent');
-            const res = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${API_KEY}&append_to_response=videos`);
+            const res = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${API_KEY}&append_to_response=videos,credits`);
             const movie = await res.json();
             document.getElementById('modalBackdrop').style.backgroundImage = `url(${ORI_IMG + movie.backdrop_path})`;
             
-            const isShort = (document.getElementById('typeFilter').value === 'short' || (movie.runtime && movie.runtime <= 45));
-            const video = movie.videos.results.find(v => v.site === 'YouTube');
-            
-            // Perbaikan Logika: Pencarian YouTube otomatis agar langsung memutar video asli di pop-up
-            // Menggunakan query judul + short film untuk akurasi
-            const youtubeQuery = encodeURIComponent((movie.title || movie.name) + " short film");
-            const finalVideoSrc = video ? `https://www.youtube.com/embed/${video.key}?autoplay=1` : `https://www.youtube.com/embed?listType=search&list=${youtubeQuery}&autoplay=1`;
-
-            // Link Download Vidsrc tetap terjaga sesuai permintaan
-            const downloadUrl = `https://dl.vidsrc.vip/${type}/${movie.id}`;
-
-            content.innerHTML = `
-                <div class="md:w-1/3 p-8 flex flex-col items-center border-r border-white/5">
-                    <img src="${IMG_URL + movie.poster_path}" class="w-full rounded-2xl shadow-2xl border border-white/10 mb-6">
-                    <div class="flex flex-col gap-3 w-full">
-                        <a href="https://vidsrc.to/embed/${type}/${movie.id}" target="_blank" class="w-full bg-blue-600 text-center py-4 rounded-xl text-xs font-black uppercase italic shadow-lg">
-                            <i class="fas fa-play mr-2"></i> WATCH STREAM
-                        </a>
-                        <div class="flex gap-2">
-                            <a href="${downloadUrl}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded-xl text-[10px] font-black uppercase italic">Download</a>
-                            <a href="https://flashstream.cc/${type}/${movie.id}" target="_blank" class="flex-1 bg-white/10 text-center py-3 rounded-xl text-[10px] font-black uppercase border border-white/10">Flash</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="md:w-2/3 p-8">
-                    <h2 class="text-4xl font-black text-white uppercase italic mb-2 tracking-tighter leading-none">${movie.title || movie.name}</h2>
-                    <p class="text-[10px] text-blue-400 font-black mb-6 uppercase tracking-widest">⭐ ${movie.vote_average.toFixed(1)} | ${movie.runtime || 'Short'} MIN | ${movie.release_date || movie.first_air_date}</p>
-                    <div class="mb-8">
-                        <p class="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-widest">Animation Player (Auto-Play HD)</p>
-                        <div class="rounded-2xl overflow-hidden border border-white/10 aspect-video shadow-2xl bg-black">
-                            <iframe class="w-full h-full" src="${finalVideoSrc}" frameborder="0" allowfullscreen allow="autoplay"></iframe>
-                        </div>
-                    </div>
-                    <p class="text-[10px] font-black text-gray-500 uppercase mb-2 tracking-widest uppercase">Description</p>
-                    <p class="text-[13px] text-gray-400 leading-relaxed italic opacity-80">"${movie.overview || 'No description available.'}"</p>
-                </div>`;
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal() { document.getElementById('movieModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
-        window.onclick = (e) => { if (e.target.id == 'movieModal') closeModal(); }
-        loadMovies();
-    </script>
-</body>
-</html>
+            const isShort = (document.getElementById('typeFilter').value === 'short' || (movie.runtime && movie.runtime <= 45
