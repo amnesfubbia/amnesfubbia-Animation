@@ -10,21 +10,18 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background-color: #060606; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; }
         
-        /* Grid 1 Baris 3 Poster untuk Mobile */
         .movie-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        @media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(5, 1fr); } }
-        @media (min-width: 1024px) { .movie-grid { grid-template-columns: repeat(6, 1fr); } }
+        @media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(6, 1fr); } }
 
-        .movie-card { position: relative; border-radius: 8px; overflow: hidden; background: #111; border: 1px solid #1a1a1a; cursor: pointer; transition: 0.3s; }
-        .movie-card:hover { transform: scale(1.03); border-color: #3b82f6; }
-
-        /* Badge Custom */
-        .badge { position: absolute; top: 5px; left: 5px; font-size: 7px; font-weight: 900; padding: 2px 5px; border-radius: 3px; z-index: 10; text-transform: uppercase; color: white; }
+        .movie-card { position: relative; border-radius: 8px; overflow: hidden; background: #111; border: 1px solid #1a1a1a; cursor: pointer; }
+        
+        /* Badge Styles */
+        .badge { position: absolute; top: 6px; left: 6px; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 3px; z-index: 20; text-transform: uppercase; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .badge-movie { background: #3b82f6; }
         .badge-tv { background: #8b5cf6; }
         .badge-short { background: #10b981; }
 
-        .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.95); overflow-y: auto; align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.95); align-items: center; justify-content: center; }
         .search-container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
@@ -37,19 +34,26 @@
                 <div class="relative flex-grow">
                     <input type="text" id="searchInput" placeholder="Cari animasi..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs border border-white/10">
                 </div>
-                <button onclick="searchMoviesOnly()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs">CARI</button>
+                <button onclick="triggerSearch()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs uppercase">CARI</button>
                 <button onclick="openAuntModal()" class="bg-white/5 border border-white/10 p-2 rounded-md"><i class="fas fa-user-shield text-blue-400"></i></button>
             </div>
             
             <div class="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                <select id="typeFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded text-blue-400 font-bold text-[10px] min-w-[110px]">
-                    <option value="movie">FILM BIOSKOP</option>
-                    <option value="tv">SERIAL / ANIME</option>
-                    <option value="short">FILM PENDEK</option>
+                <select id="typeFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded text-blue-400 font-bold text-[10px] min-w-[110px] border border-white/10">
+                    <option value="movie">MOVIE</option>
+                    <option value="tv">TV SHOW</option>
+                    <option value="short">SHORT</option>
                 </select>
-                <select id="yearFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded text-white text-[10px]">
-                    <option value="">TAHUN</option>
+                <select id="yearFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded text-white text-[10px] border border-white/10">
+                    <option value="">YEAR</option>
                     <script>for(let y=2026; y>=1950; y--) document.write(`<option value="${y}">${y}</option>`);</script>
+                </select>
+                <select id="countryFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded text-white text-[10px] border border-white/10">
+                    <option value="">NATION</option>
+                    <option value="JP">Jepang</option>
+                    <option value="US">Amerika</option>
+                    <option value="ID">Indonesia</option>
+                    <option value="KR">Korea</option>
                 </select>
             </div>
         </div>
@@ -58,27 +62,25 @@
     <main class="container mx-auto px-2 pt-32 pb-10">
         <div id="movieGrid" class="movie-grid"></div>
         <div class="flex justify-center mt-10">
-            <button id="loadMoreBtn" onclick="loadMore()" class="bg-white/5 border border-white/10 px-10 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-600">Muat Lebih Banyak</button>
+            <button id="loadMoreBtn" onclick="loadMore()" class="bg-white/5 border border-white/10 px-10 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition">Load More</button>
         </div>
     </main>
 
     <div id="auntModal" class="modal p-4">
         <div class="bg-[#111] w-full max-w-sm p-8 rounded-2xl border border-white/10 relative">
             <button onclick="closeAuntModal()" class="absolute top-4 right-4 text-gray-500">✕</button>
-            <div id="auntContent">
-                <h2 class="text-xl font-black text-blue-500 uppercase italic mb-6 text-center">Aunt Portal</h2>
-                <div class="space-y-4">
-                    <input type="email" placeholder="Email" class="w-full bg-black p-3 rounded-lg text-xs border border-white/10 outline-none">
-                    <input type="password" placeholder="Password" class="w-full bg-black p-3 rounded-lg text-xs border border-white/10 outline-none">
-                    <button class="w-full bg-blue-600 py-3 rounded-lg font-black text-xs uppercase">Sign In</button>
-                    <button onclick="showRegister()" class="w-full text-[10px] text-gray-500 uppercase font-bold mt-2">Buat Akun Baru</button>
-                </div>
+            <h2 class="text-xl font-black text-blue-500 uppercase italic mb-6 text-center">Aunt Portal</h2>
+            <div class="space-y-4">
+                <input type="email" id="auntEmail" placeholder="Email" class="w-full bg-black p-3 rounded-lg text-xs border border-white/10 outline-none">
+                <input type="password" id="auntPass" placeholder="Password" class="w-full bg-black p-3 rounded-lg text-xs border border-white/10 outline-none">
+                <button class="w-full bg-blue-600 py-3 rounded-lg font-black text-xs uppercase">Sign In</button>
+                <button onclick="alert('Coming Soon')" class="w-full text-[10px] text-gray-500 uppercase font-bold">Create Account</button>
             </div>
         </div>
     </div>
 
     <div id="movieModal" class="modal p-2">
-        <div class="bg-[#0f0f0f] w-full max-w-4xl rounded-xl overflow-hidden relative border border-white/10 flex flex-col md:flex-row">
+        <div class="bg-[#0f0f0f] w-full max-w-4xl rounded-xl overflow-hidden relative border border-white/10 shadow-2xl">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-white bg-blue-600 w-8 h-8 rounded-full z-50">✕</button>
             <div id="modalContent" class="flex flex-col md:flex-row w-full"></div>
         </div>
@@ -88,63 +90,69 @@
         const API_KEY = 'bfa7df5310c9974f62f26c6789a8c00d';
         const IMG_URL = 'https://image.tmdb.org/t/p/w500';
         let currentPage = 1;
-        let isSearching = false;
+        let queryMode = false;
 
-        function resetAndLoad() { isSearching = false; currentPage = 1; loadMovies(false); }
-        function loadMore() { currentPage++; isSearching ? searchMoviesOnly(true) : loadMovies(true); }
+        function resetAndLoad() { queryMode = false; currentPage = 1; loadMovies(false); }
+        function loadMore() { currentPage++; queryMode ? triggerSearch(true) : loadMovies(true); }
 
         async function loadMovies(append = false) {
             const grid = document.getElementById('movieGrid');
             const type = document.getElementById('typeFilter').value;
             const year = document.getElementById('yearFilter').value;
+            const country = document.getElementById('countryFilter').value;
             
-            if (!append) grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Loading Hub...</p>';
+            if (!append) grid.innerHTML = '<p class="col-span-full text-center py-20 text-[10px] uppercase font-bold animate-pulse text-blue-500">Syncing Hub...</p>';
 
             let endpoint = (type === 'tv') ? 'tv' : 'movie';
             let url = `https://api.themoviedb.org/3/discover/${endpoint}?api_key=${API_KEY}&with_genres=16&language=id-ID&sort_by=popularity.desc&page=${currentPage}`;
             if (year) url += (endpoint === 'movie') ? `&primary_release_year=${year}` : `&first_air_date_year=${year}`;
+            if (country) url += `&with_origin_country=${country}`;
             if (type === 'short') url += `&with_runtime.lte=45`;
 
             const res = await fetch(url);
             const data = await res.json();
-            renderMovies(data.results, type, append);
+            renderItems(data.results, type, append);
         }
 
-        async function searchMoviesOnly(append = false) {
-            isSearching = true;
+        async function triggerSearch(append = false) {
+            queryMode = true;
             const query = document.getElementById('searchInput').value;
-            if (!query) return;
+            if (!query) { resetAndLoad(); return; }
+            
             const grid = document.getElementById('movieGrid');
-            if(!append) { currentPage = 1; grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Searching...</p>'; }
+            if (!append) { currentPage = 1; grid.innerHTML = '<p class="col-span-full text-center py-20 text-[10px] uppercase font-bold animate-pulse text-blue-500">Searching...</p>'; }
 
+            // Gunakan Multi Search agar bisa cari Film & TV sekaligus
             const url = `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}&page=${currentPage}&language=id-ID`;
             const res = await fetch(url);
             const data = await res.json();
             
-            const animOnly = data.results.filter(m => m.genre_ids && m.genre_ids.includes(16));
-            renderMovies(animOnly, 'search', append);
+            // Filter hanya yang kategori animasi
+            const filtered = data.results.filter(m => (m.genre_ids && m.genre_ids.includes(16)) || m.media_type === 'tv' || m.media_type === 'movie');
+            renderItems(filtered, 'search', append);
         }
 
-        function renderMovies(movies, type, append) {
+        function renderItems(items, type, append) {
             const grid = document.getElementById('movieGrid');
             if (!append) grid.innerHTML = '';
             
-            movies.forEach(item => {
+            items.forEach(item => {
                 if(!item.poster_path) return;
                 
-                // Badge Logic Corrected
+                // Smart Badge Logic
                 let bCls = "badge-movie", bTxt = "MOVIE";
-                let currentType = type === 'search' ? (item.media_type === 'tv' ? 'tv' : 'movie') : type;
+                let itemType = (item.media_type) ? item.media_type : (document.getElementById('typeFilter').value);
                 
-                if(currentType === 'tv') { bCls = "badge-tv"; bTxt = "TV SHOW"; }
-                if(currentType === 'short') { bCls = "badge-short"; bTxt = "SHORT"; }
+                if (itemType === 'tv') { bCls = "badge-tv"; bTxt = "TV SHOW"; }
+                // Jika film dan durasi pendek (atau dipilih short)
+                if (type === 'short' || (item.runtime && item.runtime <= 45)) { bCls = "badge-short"; bTxt = "SHORT"; }
 
                 const card = document.createElement('div');
                 card.className = 'movie-card';
-                card.onclick = () => showDetail(item.id, currentType);
+                card.onclick = () => showDetail(item.id, itemType === 'tv' ? 'tv' : 'movie');
                 card.innerHTML = `
                     <span class="badge ${bCls}">${bTxt}</span>
-                    <img src="${IMG_URL+item.poster_path}" class="w-full aspect-[2/3] object-cover">
+                    <img src="${IMG_URL + item.poster_path}" class="w-full aspect-[2/3] object-cover">
                     <div class="p-2">
                         <h3 class="text-[9px] font-black truncate uppercase text-blue-500">${item.title || item.name}</h3>
                     </div>`;
@@ -157,27 +165,31 @@
             const res = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${API_KEY}&language=id-ID`);
             const m = await res.json();
             
-            const isShort = (m.runtime && m.runtime <= 45) || type === 'short';
+            const isShort = (m.runtime && m.runtime <= 45) || document.getElementById('typeFilter').value === 'short';
             const watchLink = isShort ? `https://www.shortoftheweek.com/channels/animation/?s=${encodeURIComponent(m.title || m.name)}` : `https://vidsrc.to/embed/${type}/${id}`;
 
             document.getElementById('modalContent').innerHTML = `
                 <div class="md:w-1/3"><img src="${IMG_URL + m.poster_path}" class="w-full h-full object-cover"></div>
                 <div class="md:w-2/3 p-6 bg-[#0a0a0a]">
-                    <h2 class="text-xl font-black text-blue-500 uppercase italic mb-2">${m.title || m.name}</h2>
-                    <p class="text-[10px] text-gray-400 mb-6 leading-relaxed">${m.overview || 'No description.'}</p>
-                    <div class="space-y-2">
-                        <a href="${watchLink}" target="_blank" class="w-full ${isShort?'bg-green-600':'bg-blue-600'} block text-center py-4 rounded font-black text-xs uppercase tracking-widest text-white">
+                    <h2 class="text-xl font-black text-blue-500 uppercase italic mb-1">${m.title || m.name}</h2>
+                    <p class="text-[10px] text-gray-500 mb-4 font-bold uppercase tracking-widest">★ ${m.vote_average.toFixed(1)} | ${m.runtime || '?'} MIN</p>
+                    <p class="text-[11px] text-gray-400 mb-6 leading-relaxed">${m.overview || 'Deskripsi tidak tersedia.'}</p>
+                    <div class="flex flex-col gap-2">
+                        <a href="${watchLink}" target="_blank" class="w-full ${isShort ? 'bg-green-600' : 'bg-blue-600'} text-center py-4 rounded font-black text-xs uppercase tracking-widest text-white block">
                             ${isShort ? 'Watch on Short of the Week' : 'Putar Sekarang'}
                         </a>
-                        <a href="https://dl.vidsrc.vip/${type}/${id}" target="_blank" class="w-full bg-white/5 text-center py-3 block rounded text-[10px] font-black uppercase border border-white/10">Download File</a>
+                        <a href="https://dl.vidsrc.vip/${type}/${id}" target="_blank" class="w-full bg-white/5 text-center py-3 rounded text-[10px] font-black uppercase border border-white/10 text-white block">Download File</a>
                     </div>
                 </div>`;
         }
 
+        // UI Handlers
         function openAuntModal() { document.getElementById('auntModal').style.display = 'flex'; }
         function closeAuntModal() { document.getElementById('auntModal').style.display = 'none'; }
         function closeModal() { document.getElementById('movieModal').style.display = 'none'; }
-        function showRegister() { alert('Fitur pendaftaran akun segera hadir di update Amnesfubbia berikutnya!'); }
+        
+        // Enter key for search
+        document.getElementById('searchInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') triggerSearch(); });
 
         loadMovies();
     </script>
