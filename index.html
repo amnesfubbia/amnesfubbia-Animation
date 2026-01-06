@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amnesfubbia - Premium Animation Hub</title>
+    <title>Amnesfubbia - Animation Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background-color: #060606; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; }
-        .movie-card { transition: transform 0.3s ease; border-radius: 12px; overflow: hidden; background: #111; cursor: pointer; border: 1px solid transparent; position: relative; }
-        .movie-card:hover { transform: translateY(-5px); border-color: #3b82f6; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2); }
-        .new-badge { position: absolute; top: 8px; right: 8px; background: #ef4444; color: white; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; z-index: 10; text-transform: uppercase; }
+        .movie-card { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 12px; overflow: hidden; background: #111; height: 100%; cursor: pointer; position: relative; border: 1px solid transparent; }
+        .movie-card:hover { transform: scale(1.05); border-color: #3b82f6; z-index: 10; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2); }
+        .new-badge { position: absolute; top: 8px; right: 8px; background: #ef4444; color: white; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
         .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.98); overflow-y: auto; backdrop-filter: blur(25px); }
-        .search-container { background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .search-container { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(25px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         #modalBackdrop { position: absolute; inset: 0; background-size: cover; background-position: center; filter: blur(80px) brightness(0.1); opacity: 0.8; z-index: -1; }
     </style>
@@ -51,14 +51,16 @@
 
     <main class="container mx-auto px-2 pt-36 pb-10">
         <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"></div>
-        <div class="flex justify-center mt-12"><button onclick="loadMore()" class="bg-blue-600 px-12 py-4 rounded-full text-xs font-black uppercase tracking-widest">Load More</button></div>
+        <div class="flex justify-center mt-12 mb-10">
+            <button onclick="loadMore()" class="bg-blue-600 px-12 py-4 rounded-full text-xs font-black uppercase tracking-widest shadow-xl">Load More</button>
+        </div>
     </main>
 
     <div id="movieModal" class="modal flex items-center justify-center p-2">
         <div class="bg-[#0a0a0a] w-full max-w-5xl rounded-3xl overflow-hidden relative border border-white/10 shadow-2xl">
             <div id="modalBackdrop"></div>
-            <button onclick="closeModal()" class="absolute top-5 right-5 text-white bg-black/50 hover:bg-red-600 w-11 h-11 rounded-full z-50 flex items-center justify-center border border-white/10">✕</button>
-            <div id="modalContent" class="flex flex-col md:flex-row relative z-10 max-h-[90vh] overflow-y-auto"></div>
+            <button onclick="closeModal()" class="absolute top-5 right-5 text-white bg-black/40 hover:bg-blue-600 w-11 h-11 rounded-full z-50 flex items-center justify-center border border-white/10">✕</button>
+            <div id="modalContent" class="flex flex-col md:flex-row relative z-10 max-h-[90vh] overflow-y-auto scrollbar-hide"></div>
         </div>
     </div>
 
@@ -89,15 +91,16 @@
             if (!append) grid.innerHTML = '';
             movies.forEach(item => {
                 if(!item.poster_path) return;
-                const year = (item.release_date || item.first_air_date || '').split('-')[0];
+                const releaseYear = (item.release_date || item.first_air_date || '').split('-')[0];
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.onclick = () => showDetail(item.id, item.name ? 'tv' : 'movie');
                 card.innerHTML = `
-                    ${year >= 2025 ? '<div class="new-badge">NEW</div>' : ''}
-                    <img src="${IMG_URL + item.poster_path}" class="w-full aspect-[2/3] object-cover">
-                    <div class="p-3"><h3 class="text-[10px] font-black truncate uppercase">${item.title || item.name}</h3>
-                    <p class="text-[9px] text-gray-500 font-bold uppercase">${year || 'TBA'}</p></div>`;
+                    ${releaseYear >= 2025 ? '<div class="new-badge">NEW</div>' : ''}
+                    <div class="relative"><img src="${IMG_URL + item.poster_path}" class="w-full aspect-[2/3] object-cover">
+                    <div class="absolute bottom-2 right-2 bg-black/80 text-yellow-400 text-[9px] px-2 py-0.5 rounded font-black">★ ${item.vote_average.toFixed(1)}</div></div>
+                    <div class="p-3"><h3 class="text-[10px] font-black truncate uppercase text-gray-100">${item.title || item.name}</h3>
+                    <p class="text-[9px] text-gray-500 font-bold uppercase">${releaseYear || 'TBA'}</p></div>`;
                 grid.appendChild(card);
             });
         }
@@ -120,23 +123,24 @@
             const isShort = (document.getElementById('typeFilter').value === 'short' || (movie.runtime && movie.runtime <= 45));
             const video = movie.videos.results.find(v => v.site === 'YouTube');
             
-            // Premium Click: Langsung memutar video di YouTube tanpa masuk ke hasil pencarian
-            const directPlayUrl = video ? `https://www.youtube.com/watch?v=${video.key}&autoplay=1` : `https://www.youtube.com/results?search_query=${encodeURIComponent(movie.title || movie.name)}+full+movie`;
-            
-            // Kembalikan Link Download Layar Lebar ke vidsrc (sebelumnya)
+            // Perbaikan Logika: Pencarian YouTube otomatis agar langsung memutar video asli di pop-up
+            // Menggunakan query judul + short film untuk akurasi
+            const youtubeQuery = encodeURIComponent((movie.title || movie.name) + " short film");
+            const finalVideoSrc = video ? `https://www.youtube.com/embed/${video.key}?autoplay=1` : `https://www.youtube.com/embed?listType=search&list=${youtubeQuery}&autoplay=1`;
+
+            // Link Download Vidsrc tetap terjaga sesuai permintaan
             const downloadUrl = `https://dl.vidsrc.vip/${type}/${movie.id}`;
 
             content.innerHTML = `
-                <div class="md:w-1/3 p-8 flex flex-col items-center">
+                <div class="md:w-1/3 p-8 flex flex-col items-center border-r border-white/5">
                     <img src="${IMG_URL + movie.poster_path}" class="w-full rounded-2xl shadow-2xl border border-white/10 mb-6">
                     <div class="flex flex-col gap-3 w-full">
                         <a href="https://vidsrc.to/embed/${type}/${movie.id}" target="_blank" class="w-full bg-blue-600 text-center py-4 rounded-xl text-xs font-black uppercase italic shadow-lg">
                             <i class="fas fa-play mr-2"></i> WATCH STREAM
                         </a>
-                        ${isShort ? `<a href="${directPlayUrl}" target="_blank" class="w-full bg-red-600 text-center py-3 rounded-xl text-[10px] font-black uppercase"><i class="fab fa-youtube mr-1"></i> PLAY FULL MOVIE</a>` : ''}
                         <div class="flex gap-2">
-                            <a href="${downloadUrl}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded-xl text-[10px] font-black uppercase"><i class="fas fa-download mr-1"></i> DOWNLOAD</a>
-                            <a href="https://flashstream.cc/${type}/${movie.id}" target="_blank" class="flex-1 bg-white/10 text-center py-3 rounded-xl text-[10px] font-black uppercase border border-white/10">FLASH</a>
+                            <a href="${downloadUrl}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded-xl text-[10px] font-black uppercase italic">Download</a>
+                            <a href="https://flashstream.cc/${type}/${movie.id}" target="_blank" class="flex-1 bg-white/10 text-center py-3 rounded-xl text-[10px] font-black uppercase border border-white/10">Flash</a>
                         </div>
                     </div>
                 </div>
@@ -144,14 +148,13 @@
                     <h2 class="text-4xl font-black text-white uppercase italic mb-2 tracking-tighter leading-none">${movie.title || movie.name}</h2>
                     <p class="text-[10px] text-blue-400 font-black mb-6 uppercase tracking-widest">⭐ ${movie.vote_average.toFixed(1)} | ${movie.runtime || 'Short'} MIN | ${movie.release_date || movie.first_air_date}</p>
                     <div class="mb-8">
-                        <p class="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-widest">Video Player / Preview</p>
-                        ${video ? `
-                            <div class="rounded-2xl overflow-hidden border border-white/10 aspect-video bg-black">
-                                <iframe class="w-full h-full" src="https://www.youtube.com/embed/${video.key}" frameborder="0" allowfullscreen></iframe>
-                            </div>` : '<div class="p-16 bg-white/5 rounded-2xl text-center text-xs text-gray-500 italic uppercase">Source processing...</div>'}
+                        <p class="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-widest">Animation Player (Auto-Play HD)</p>
+                        <div class="rounded-2xl overflow-hidden border border-white/10 aspect-video shadow-2xl bg-black">
+                            <iframe class="w-full h-full" src="${finalVideoSrc}" frameborder="0" allowfullscreen allow="autoplay"></iframe>
+                        </div>
                     </div>
-                    <p class="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-widest">Synopsis</p>
-                    <p class="text-[13px] text-gray-400 leading-relaxed italic">"${movie.overview || 'No description available.'}"</p>
+                    <p class="text-[10px] font-black text-gray-500 uppercase mb-2 tracking-widest uppercase">Description</p>
+                    <p class="text-[13px] text-gray-400 leading-relaxed italic opacity-80">"${movie.overview || 'No description available.'}"</p>
                 </div>`;
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
