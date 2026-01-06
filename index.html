@@ -13,28 +13,50 @@
         .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:100; overflow-y: auto; padding: 20px 10px; }
         .cast-img { width:54px; height:54px; border-radius:50%; object-fit:cover; border:2px solid #3b82f6; }
         .scrollbar-hide::-webkit-scrollbar { display:none; }
-        /* Perbaikan untuk modal agar bisa di-scroll di HP */
-        .modal-container { margin: auto; }
+        select { background: #111; color: white; border: 1px solid #333; padding: 4px 8px; border-radius: 4px; font-size: 11px; outline: none; }
     </style>
 </head>
 <body>
 
-<nav class="fixed top-0 w-full bg-black/95 p-3 z-50 border-b border-gray-900">
-    <div class="flex gap-2 items-center max-w-6xl mx-auto">
+<nav class="fixed top-0 w-full bg-black/95 z-50 border-b border-gray-900">
+    <div class="p-3 max-w-7xl mx-auto flex flex-wrap gap-3 items-center">
         <span onclick="location.reload()" class="font-black italic text-blue-500 cursor-pointer tracking-tighter text-lg">AMNESFUBBIA</span>
-        <form onsubmit="event.preventDefault(); searchMovies();" class="flex flex-1 gap-2">
+        
+        <div class="flex flex-1 gap-2">
             <input id="searchInput" placeholder="Cari animasi..." class="flex-1 bg-zinc-900 p-2 text-xs rounded outline-none focus:ring-1 focus:ring-blue-500">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs rounded font-bold transition">CARI</button>
-        </form>
+            <button onclick="searchMovies()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs rounded font-bold">CARI</button>
+        </div>
+    </div>
+
+    <div class="bg-zinc-900/50 p-2 overflow-x-auto whitespace-nowrap scrollbar-hide flex gap-3 justify-center items-center border-t border-white/5">
+        <select id="filterType" onchange="loadMovies()">
+            <option value="movie">🎬 MOVIE</option>
+            <option value="tv">📺 TV SHOW</option>
+            <option value="short">🎞️ SHORT</option>
+        </select>
+
+        <select id="filterYear" onchange="loadMovies()">
+            <option value="">📅 SEMUA TAHUN</option>
+            </select>
+
+        <select id="filterCountry" onchange="loadMovies()">
+            <option value="">🌍 SEMUA NEGARA</option>
+            <option value="ID">🇮🇩 INDONESIA</option>
+            <option value="JP">🇯🇵 JEPANG (ANIME)</option>
+            <option value="US">🇺🇸 AMERIKA</option>
+            <option value="KR">🇰🇷 KOREA</option>
+            <option value="CN">🇨🇳 CHINA</option>
+            <option value="FR">🇫🇷 PRANCIS</option>
+        </select>
     </div>
 </nav>
 
-<main class="pt-24 px-4 pb-10 max-w-7xl mx-auto">
+<main class="pt-32 px-4 pb-10 max-w-7xl mx-auto">
     <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-3"></div>
 </main>
 
 <div id="movieModal" class="modal" onclick="if(event.target === this) closeModal()">
-    <div class="modal-container bg-[#0f0f0f] max-w-4xl w-full rounded-xl overflow-hidden relative shadow-2xl border border-zinc-800">
+    <div class="m-auto bg-[#0f0f0f] max-w-4xl w-full rounded-xl overflow-hidden relative shadow-2xl border border-zinc-800">
         <button onclick="closeModal()" class="absolute top-3 right-3 bg-blue-600 hover:bg-red-600 w-8 h-8 rounded-full z-20 transition">✕</button>
         <div id="modalContent" class="flex flex-col md:flex-row"></div>
     </div>
@@ -45,143 +67,111 @@ const API = 'https://api.themoviedb.org/3';
 const KEY = 'bfa7df5310c9974f62f26c6789a8c00d';
 const IMG = 'https://image.tmdb.org/t/p/w500';
 
+// Generate Dropdown Tahun 1920 - Sekarang
+const yearSelect = document.getElementById('filterYear');
+const currentYear = new Date().getFullYear();
+for(let y = currentYear; y >= 1920; y--) {
+    let opt = document.createElement('option');
+    opt.value = y;
+    opt.innerHTML = y;
+    yearSelect.appendChild(opt);
+}
+
 async function loadMovies(){
-    movieGrid.innerHTML = '<div class="col-span-full text-center py-20 animate-pulse text-blue-500 font-bold">LOADING ANIMATION...</div>';
+    const type = document.getElementById('filterType').value;
+    const year = document.getElementById('filterYear').value;
+    const country = document.getElementById('filterCountry').value;
+    
+    movieGrid.innerHTML = '<div class="col-span-full text-center py-20 animate-pulse text-blue-500">FILTERING...</div>';
+
+    let category = (type === 'tv') ? 'tv' : 'movie';
+    let url = `${API}/discover/${category}?api_key=${KEY}&with_genres=16&sort_by=popularity.desc&page=1`;
+
+    if(year) url += (category === 'movie') ? `&primary_release_year=${year}` : `&first_air_date_year=${year}`;
+    if(country) url += `&with_origin_country=${country}`;
+    if(type === 'short') url += `&with_runtime.lte=45`;
+
     try {
-        const res = await fetch(`${API}/discover/movie?api_key=${KEY}&with_genres=16&sort_by=popularity.desc`);
+        const res = await fetch(url);
         const data = await res.json();
-        renderMovies(data.results);
+        renderMovies(data.results, category);
     } catch (e) {
-        movieGrid.innerHTML = '<p class="col-span-full text-center">Gagal memuat data.</p>';
+        movieGrid.innerHTML = '<p class="col-span-full text-center">Gagal memuat.</p>';
     }
 }
 
 async function searchMovies(){
     const q = document.getElementById('searchInput').value.trim();
     if(!q) return loadMovies();
-
     movieGrid.innerHTML = '<p class="col-span-full text-center py-20">Mencari...</p>';
     
     try {
-        const res = await fetch(`${API}/search/movie?api_key=${KEY}&query=${encodeURIComponent(q)}`);
+        const res = await fetch(`${API}/search/multi?api_key=${KEY}&query=${encodeURIComponent(q)}`);
         const data = await res.json();
-        // Memastikan hanya menampilkan animasi (Genre 16)
-        const filtered = data.results.filter(m => m.genre_ids && m.genre_ids.includes(16));
+        const filtered = data.results.filter(m => (m.media_type === 'movie' || m.media_type === 'tv') && m.genre_ids && m.genre_ids.includes(16));
         renderMovies(filtered);
-    } catch (e) {
-        movieGrid.innerHTML = '<p class="col-span-full text-center">Terjadi kesalahan saat mencari.</p>';
-    }
+    } catch (e) { console.error(e); }
 }
 
-function getBadge(m){
-    if(m.first_air_date) return 'TV';
-    if(m.release_date && m.release_date < '1990-01-01') return 'OLD';
-    return 'MOVIE';
-}
-
-function renderMovies(list){
+function renderMovies(list, forceType = null){
     const grid = document.getElementById('movieGrid');
     grid.innerHTML = '';
     
     if(!list || list.length === 0){
-        grid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-20">Animasi tidak ditemukan.</p>';
+        grid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-20">Data tidak ditemukan untuk filter ini.</p>';
         return;
     }
 
     list.forEach(m => {
         if(!m.poster_path) return;
+        const mediaType = forceType || m.media_type || (m.title ? 'movie' : 'tv');
+        const title = m.title || m.name;
+        const date = m.release_date || m.first_air_date || '';
+        
         const div = document.createElement('div');
         div.className = 'movie-card';
-        div.onclick = () => showDetail(m.id);
+        div.onclick = () => showDetail(m.id, mediaType);
         div.innerHTML = `
             <div class="relative">
-                <img loading="lazy" src="${IMG + m.poster_path}" class="w-full aspect-[2/3] object-cover" alt="${m.title}">
-                <span class="badge bg-blue-600 text-white shadow-lg">${getBadge(m)}</span>
+                <img loading="lazy" src="${IMG + m.poster_path}" class="w-full aspect-[2/3] object-cover">
+                <span class="badge bg-blue-600 text-white shadow-lg uppercase">${mediaType}</span>
             </div>
-            <p class="text-[10px] p-2 truncate font-bold text-gray-200">${m.title}</p>
+            <p class="text-[10px] p-2 truncate font-bold text-gray-200">${title}</p>
         `;
         grid.appendChild(div);
     });
 }
 
-async function showDetail(id){
+async function showDetail(id, type){
     const content = document.getElementById('modalContent');
     const modal = document.getElementById('movieModal');
-    content.innerHTML = '<div class="p-20 w-full text-center">Loading Detail...</div>';
+    content.innerHTML = '<div class="p-20 w-full text-center">Loading...</div>';
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
     try {
-        const res = await fetch(`${API}/movie/${id}?api_key=${KEY}&append_to_response=videos,credits`);
+        const res = await fetch(`${API}/${type}/${id}?api_key=${KEY}&append_to_response=videos,credits`);
         const m = await res.json();
-
-        const isShort = m.runtime && m.runtime <= 45;
-        const trailer = m.videos.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+        const trailer = m.videos?.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+        const title = m.title || m.name;
+        const runtime = m.runtime || (m.episode_run_time ? m.episode_run_time[0] : '?');
 
         content.innerHTML = `
-            <img src="${IMG + m.poster_path}" class="w-full md:w-1/3 object-cover shadow-xl">
+            <img src="${IMG + m.poster_path}" class="w-full md:w-1/3 object-cover">
             <div class="p-6 md:w-2/3">
-                <h2 class="text-2xl font-black text-blue-500 italic leading-tight mb-1">${m.title}</h2>
-                <p class="text-[11px] text-gray-400 mb-4 tracking-widest uppercase font-bold">
-                    ${m.release_date ? m.release_date.split('-')[0] : 'N/A'} • ${m.runtime || '?'} MENIT
+                <h2 class="text-2xl font-black text-blue-500 italic mb-1">${title}</h2>
+                <p class="text-[11px] text-gray-400 mb-4 tracking-widest uppercase">
+                    ${type} • ${runtime} MENIT
                 </p>
-                <p class="text-[12px] leading-relaxed text-gray-300 mb-6 line-clamp-4 md:line-clamp-none">
-                    ${m.overview || 'Sinopsis tidak tersedia untuk judul ini.'}
-                </p>
+                <p class="text-[12px] leading-relaxed text-gray-300 mb-6">${m.overview || 'No description.'}</p>
 
-                ${trailer ? `
-                <div class="mb-6 rounded-lg overflow-hidden border border-zinc-800 shadow-lg">
-                    <iframe class="w-full aspect-video" 
-                    src="https://www.youtube.com/embed/${trailer.key}" 
-                    allowfullscreen></iframe>
+                ${trailer ? `<div class="mb-6 rounded-lg overflow-hidden border border-zinc-800">
+                    <iframe class="w-full aspect-video" src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen></iframe>
                 </div>` : ''}
 
-                <h3 class="text-[10px] font-black text-blue-500 mb-2 tracking-tighter">PENGISI SUARA / CAST</h3>
-                <div class="flex gap-4 overflow-x-auto scrollbar-hide mb-6 pb-2">
-                    ${m.credits.cast.slice(0, 10).map(c => `
-                    <div onclick="loadCast(${c.id})" class="text-center cursor-pointer flex-shrink-0 group">
-                        <img src="${c.profile_path ? IMG + c.profile_path : 'https://via.placeholder.com/150'}" 
-                             class="cast-img mx-auto mb-1 group-hover:border-white transition">
-                        <p class="text-[9px] w-16 truncate font-medium text-gray-400">${c.name}</p>
-                    </div>`).join('')}
-                </div>
-
-                ${!isShort ? `
-                <a href="https://vidsrc.to/embed/movie/${m.id}" target="_blank" 
-                   class="block bg-blue-600 hover:bg-blue-500 py-3 text-center rounded-lg font-black text-xs transition tracking-widest shadow-lg">
-                   MULAI STREAMING</a>` : `
-                <p class="text-green-500 text-[10px] font-black italic bg-green-500/10 p-2 rounded border border-green-500/20">
-                   ▶ SHORT FILM - Gunakan pemutar video di atas
-                </p>`}
-            </div>`;
-    } catch (e) {
-        content.innerHTML = '<p class="p-10 text-center">Gagal memuat detail film.</p>';
-    }
-}
-
-async function loadCast(id){
-    closeModal();
-    const grid = document.getElementById('movieGrid');
-    grid.innerHTML = '<p class="col-span-full text-center py-20 animate-pulse">Memuat film berdasarkan pemeran...</p>';
-    try {
-        const res = await fetch(`${API}/person/${id}/movie_credits?api_key=${KEY}`);
-        const data = await res.json();
-        // Filter animasi saja
-        const animatedMovies = data.cast.filter(m => m.genre_ids && m.genre_ids.includes(16));
-        renderMovies(animatedMovies);
-    } catch (e) {
-        grid.innerHTML = '<p class="col-span-full text-center">Gagal memuat data pemeran.</p>';
-    }
-}
-
-function closeModal(){
-    document.getElementById('movieModal').style.display = 'none';
-    document.body.style.overflow = 'auto';
-}
-
-// Inisialisasi awal
-loadMovies();
-</script>
-
-</body>
-</html>
+                <div class="flex gap-4 overflow-x-auto scrollbar-hide mb-6">
+                    ${m.credits?.cast.slice(0, 10).map(c => `
+                    <div class="text-center flex-shrink-0">
+                        <img src="${c.profile_path ? IMG + c.profile_path : 'https://via.placeholder.com/150'}" class="cast-img mx-auto mb-1">
+                        <p class="text-[9px] w-16 truncate text-gray-400">${c.name}</p>
+                    </div>
