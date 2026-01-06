@@ -3,135 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AmnesMovie - Koleksi Film Terupdate</title>
+    <title>Amnesfubbia - Animation Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-        body { font-family: 'Poppins', sans-serif; background-color: #0b0f19; color: white; }
-        .backdrop-overlay { background: linear-gradient(to bottom, rgba(11,15,25,0) 0%, rgba(11,15,25,1) 100%); }
-        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .modal-active { display: flex !important; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background-color: #060606; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; }
+        .movie-card { transition: transform 0.3s ease; border-radius: 8px; overflow: hidden; background: #111; height: 100%; cursor: pointer; }
+        .movie-card:hover { transform: scale(1.05); border: 1px solid #3b82f6; }
+        .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.95); overflow-y: auto; }
+        .search-container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .cast-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #3b82f6; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
-    <header class="relative h-[60vh] w-full overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?auto=format&fit=crop&w=1920" class="absolute inset-0 w-full h-full object-cover" alt="Hero Backdrop">
-        <div class="absolute inset-0 backdrop-overlay"></div>
-        <div class="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
-            <span class="bg-emerald-500 text-xs font-bold px-3 py-1 rounded-full mb-4">NEW RELEASE</span>
-            <h1 class="text-4xl md:text-6xl font-bold mb-4">Amnes Movie Collection</h1>
-            <p class="text-gray-300 max-w-xl mb-6">Simpan film favoritmu dan akses kapan saja dengan fitur akun terbaru.</p>
-            <div class="flex gap-4">
-                <button onclick="toggleModal('auth-modal')" class="bg-white text-black px-6 py-2 rounded-lg font-semibold hover:bg-gray-200">Mulai Sekarang</button>
-                <button class="bg-gray-800/80 px-6 py-2 rounded-lg font-semibold border border-gray-600">Explore</button>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 py-12">
-        
-        <div class="flex items-center justify-between mb-8">
-            <h2 class="text-2xl font-bold italic border-l-4 border-emerald-500 pl-4">Trending Movies</h2>
-            <div class="flex gap-2">
-                <span class="bg-blue-600 text-[10px] px-2 py-1 rounded font-bold uppercase">HD</span>
-                <span class="bg-orange-600 text-[10px] px-2 py-1 rounded font-bold uppercase">Action</span>
-            </div>
-        </div>
-
-        <div id="movie-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            <div class="glass-card rounded-xl overflow-hidden group cursor-pointer">
-                <div class="relative">
-                    <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=500" class="w-full h-72 object-cover group-hover:scale-105 transition duration-300" alt="Movie">
-                    <div class="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">8.5</div>
+    <nav class="fixed top-0 w-full z-50 search-container p-3">
+        <div class="container mx-auto space-y-2">
+            <div class="flex items-center gap-2">
+                <span class="text-lg font-black text-blue-500 italic shrink-0" onclick="location.reload()">AMNESFUBBIA</span>
+                <div class="relative flex-grow">
+                    <input type="text" id="searchInput" placeholder="Cari animasi..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs">
                 </div>
-                <div class="p-4">
-                    <h3 class="font-semibold text-sm truncate">The Midnight Journey</h3>
-                    <p class="text-xs text-gray-400 mt-1">2026 • Sci-Fi</p>
-                </div>
+                <button onclick="searchMoviesOnly()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs">CARI</button>
             </div>
+            <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                <select id="yearFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
+                    <option value="">Semua Tahun</option>
+                    <script>for(let y=2026; y>=1920; y--) document.write(`<option value="${y}">${y}</option>`);</script>
+                </select>
+                <select id="countryFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
+                    <option value="">Negara</option>
+                    <option value="ID">Indonesia 🇮🇩</option>
+                    <option value="JP">Jepang 🇯🇵</option>
+                    <option value="US">Amerika 🇺🇸</option>
+                    <option value="CN">China 🇨🇳</option>
+                    <option value="KR">Korea 🇰🇷</option>
+                    <option value="FR">Prancis 🇫🇷</option>
+                    <option value="GB">Inggris 🇬🇧</option>
+                    <option value="DE">Jerman 🇩🇪</option>
+                    <option value="CA">Kanada 🇨🇦</option>
+                    <option value="ES">Spanyol 🇪🇸</option>
+                </select>
+                <select id="typeFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-blue-400 font-bold text-[10px] min-w-[120px]">
+                    <option value="">Semua Tipe</option>
+                    <option value="short">Film Pendek / OVA</option>
+                    <option value="movie">Bioskop (Panjang)</option>
+                </select>
             </div>
-
-        <div class="flex justify-center mt-12">
-            <button id="load-more" class="px-8 py-3 border border-emerald-500 text-emerald-500 rounded-full hover:bg-emerald-500 hover:text-white transition font-medium">
-                <i class="fas fa-spinner fa-spin mr-2 hidden" id="loader"></i> Tampilkan Lebih Banyak
-            </button>
         </div>
+    </nav>
 
-        <hr class="my-16 border-gray-800">
-
-        <h2 class="text-xl font-bold mb-6">Mungkin Anda Suka</h2>
-        <div class="flex gap-4 overflow-x-auto pb-6 scrollbar-hide">
-            <div class="min-w-[150px] h-20 glass-card rounded-lg flex items-center justify-center text-xs p-2 text-center italic">Horror Selection</div>
-            <div class="min-w-[150px] h-20 glass-card rounded-lg flex items-center justify-center text-xs p-2 text-center italic">Anime Series</div>
-            <div class="min-w-[150px] h-20 glass-card rounded-lg flex items-center justify-center text-xs p-2 text-center italic">Netflix Original</div>
-        </div>
+    <main class="container mx-auto px-2 pt-32 pb-10">
+        <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
     </main>
 
-    <div id="auth-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="glass-card w-full max-w-md p-8 rounded-2xl relative">
-            <button onclick="toggleModal('auth-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
-            
-            <div id="auth-tabs" class="flex gap-4 mb-8">
-                <button onclick="switchTab('signin')" id="tab-signin" class="text-xl font-bold border-b-2 border-emerald-500 pb-2">Sign In</button>
-                <button onclick="switchTab('signup')" id="tab-signup" class="text-xl font-bold text-gray-500 pb-2">Sign Up</button>
-            </div>
-
-            <form id="auth-form" class="space-y-4">
-                <div id="name-field" class="hidden">
-                    <label class="text-xs text-gray-400 block mb-1">Nama Lengkap</label>
-                    <input type="text" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-lg outline-none focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="text-xs text-gray-400 block mb-1">Email</label>
-                    <input type="email" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-lg outline-none focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="text-xs text-gray-400 block mb-1">Password</label>
-                    <input type="password" class="w-full bg-gray-800 border border-gray-700 p-3 rounded-lg outline-none focus:border-emerald-500">
-                </div>
-                <button type="submit" class="w-full bg-emerald-600 py-3 rounded-lg font-bold mt-4 hover:bg-emerald-700 transition">Lanjutkan</button>
-            </form>
+    <div id="movieModal" class="modal flex items-center justify-center p-2">
+        <div class="bg-[#0f0f0f] w-full max-w-4xl rounded-xl overflow-hidden relative border border-white/10 shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-white bg-blue-600 w-8 h-8 rounded-full z-50">✕</button>
+            <div id="modalContent" class="flex flex-col md:flex-row"></div>
         </div>
     </div>
 
     <script>
-        // Modal Logic
-        function toggleModal(id) {
-            const modal = document.getElementById(id);
-            modal.classList.toggle('modal-active');
-        }
+        const API_KEY = 'bfa7df5310c9974f62f26c6789a8c00d';
+        const IMG_URL = 'https://image.tmdb.org/t/p/w500';
 
-        // Tab Logic
-        function switchTab(type) {
-            const nameField = document.getElementById('name-field');
-            const tabIn = document.getElementById('tab-signin');
-            const tabUp = document.getElementById('tab-signup');
+        async function loadMovies() {
+            const grid = document.getElementById('movieGrid');
+            const year = document.getElementById('yearFilter').value;
+            const country = document.getElementById('countryFilter').value;
+            const type = document.getElementById('typeFilter').value;
             
-            if (type === 'signup') {
-                nameField.classList.remove('hidden');
-                tabUp.className = 'text-xl font-bold border-b-2 border-emerald-500 pb-2 text-white';
-                tabIn.className = 'text-xl font-bold text-gray-500 pb-2';
+            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Memuat Koleksi...</p>';
+
+            let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US`;
+            
+            if (year) url += `&primary_release_year=${year}`;
+            if (country) url += `&with_origin_country=${country}`;
+            
+            if (type === 'short') {
+                // Logika diperluas: durasi sangat pendek dan urutan dari yang paling populer
+                url += `&with_runtime.lte=45&sort_by=popularity.desc`;
+            } else if (type === 'movie') {
+                url += `&with_runtime.gte=60&sort_by=popularity.desc`;
             } else {
-                nameField.classList.add('hidden');
-                tabIn.className = 'text-xl font-bold border-b-2 border-emerald-500 pb-2 text-white';
-                tabUp.className = 'text-xl font-bold text-gray-500 pb-2';
+                url += `&sort_by=popularity.desc`;
             }
+
+            const res = await fetch(url);
+            const data = await res.json();
+            displayMovies(data.results);
         }
 
-        // Load More Logic (Simulasi)
-        document.getElementById('load-more').onclick = function() {
-            const loader = document.getElementById('loader');
-            loader.classList.remove('hidden');
-            this.disabled = true;
+        async function searchMoviesOnly() {
+            const query = document.getElementById('searchInput').value;
+            if (!query) return;
+            const grid = document.getElementById('movieGrid');
+            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Mencari...</p>';
+            const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const animationOnly = data.results.filter(m => m.genre_ids && m.genre_ids.includes(16));
+            displayMovies(animationOnly);
+        }
+
+        async function loadCastMovies(personId) {
+            closeModal();
+            const grid = document.getElementById('movieGrid');
+            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Memuat Animasi Pemeran...</p>';
+            const url = `https://api.themoviedb.org/3/person/${personId}/movie_credits?api_key=${API_KEY}&language=en-US`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const animationOnly = data.cast.filter(m => m.genre_ids && m.genre_ids.includes(16));
+            displayMovies(animationOnly);
+        }
+
+        function displayMovies(movies) {
+            const grid = document.getElementById('movieGrid');
+            grid.innerHTML = '';
+            if (!movies || movies.length === 0) {
+                grid.innerHTML = '<p class="col-span-full text-center py-20 text-gray-500 text-xs">Tidak ditemukan.</p>';
+                return;
+            }
+            movies.forEach(item => {
+                if(!item.poster_path) return;
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.onclick = () => showDetail(item.id);
+                card.innerHTML = `
+                    <div class="relative">
+                        <img src="${IMG_URL+item.poster_path}" class="w-full aspect-[2/3] object-cover">
+                        <div class="absolute bottom-1 right-1 bg-black/70 text-yellow-400 text-[8px] px-1 rounded">★ ${item.vote_average.toFixed(1)}</div>
+                    </div>
+                    <div class="p-2">
+                        <h3 class="text-[10px] font-bold truncate">${item.title}</h3>
+                        <p class="text-[9px] text-gray-500">${item.release_date ? item.release_date.split('-')[0] : 'N/A'}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function showDetail(movieId) {
+            const modal = document.getElementById('movieModal');
+            const content = document.getElementById('modalContent');
+            const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=videos,credits&language=en-US`);
+            const movie = await res.json();
             
-            setTimeout(() => {
-                alert('Film tambahan berhasil dimuat (Simulasi Data)');
-                loader.classList.add('hidden');
-                this.disabled = false;
-            }, 1500);
-        };
+            const trailer = movie.videos.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser' || v.type === 'Clip'));
+            const cast = movie.credits.cast.slice(0, 8);
+
+            content.innerHTML = `
+                <div class="md:w-1/3"><img src="${IMG_URL + movie.poster_path}" class="w-full h-full object-cover"></div>
+                <div class="md:w-2/3 p-6 bg-[#0a0a0a]">
+                    <h2 class="text-xl font-black text-blue-500 uppercase mb-1 italic">${movie.title}</h2>
+                    <p class="text-[10px] text-gray-500 mb-4 font-bold uppercase">📅 ${movie.release_date} | ⏱ ${movie.runtime} MIN</p>
+                    <p class="text-[11px] text-gray-300 leading-relaxed mb-6">${movie.overview || 'Description not available.'}</p>
+                    
+                    <p class="text-[9px] font-bold text-gray-600 mb-2 uppercase italic">Voice Cast:</p>
+                    <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
+                        ${cast.map(c => `
+                            <div class="shrink-0 text-center cursor-pointer" onclick="loadCastMovies('${c.id}')">
+                                <img src="${c.profile_path ? IMG_URL+c.profile_path : 'https://via.placeholder.com/100'}" class="cast-img mx-auto mb-1">
+                                <p class="text-[8px] font-bold w-16 truncate text-gray-400">${c.name}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    ${trailer ? `
+                        <div class="rounded-lg overflow-hidden border border-white/10 mb-6 aspect-video">
+                            <iframe class="w-full h-full" src="https://www.youtube.com/embed/${trailer.key}" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    ` : ''}
+
+                    <div class="flex flex-col gap-2">
+                        <a href="https://vidsrc.to/embed/movie/${movie.id}" target="_blank" class="w-full bg-blue-600 text-center py-3.5 rounded-lg text-xs font-black uppercase italic tracking-widest">STREAMING</a>
+                        <div class="flex gap-2">
+                            <a href="https://dl.vidsrc.vip/movie/${movie.id}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded-lg text-[10px] font-black uppercase">DOWNLOAD HD</a>
+                            <a href="https://flashstream.cc/download/${movie.id}" target="_blank" class="flex-1 bg-white/5 text-center py-3 rounded-lg text-[10px] font-black uppercase border border-white/10">FLASHSTREAM</a>
+                        </div>
+                    </div>
+                </div>`;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() { document.getElementById('movieModal').style.display = 'none'; document.body.style.overflow = 'auto'; document.getElementById('modalContent').innerHTML = ''; }
+        window.onclick = (e) => { if (e.target.id == 'movieModal') closeModal(); }
+        loadMovies();
     </script>
 </body>
 </html>
