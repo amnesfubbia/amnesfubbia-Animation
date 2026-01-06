@@ -11,15 +11,20 @@
         body { background-color: #060606; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; }
         .movie-card { transition: transform 0.3s ease; border-radius: 8px; overflow: hidden; background: #111; height: 100%; cursor: pointer; position: relative; }
         .movie-card:hover { transform: scale(1.05); border: 1px solid #3b82f6; }
+        
+        /* CSS Modal Asli Anda */
         .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.95); overflow-y: auto; }
+        /* Tambahan untuk Aunt Modal agar tidak blank */
+        .modal.active { display: flex; }
+
         .search-container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .cast-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #3b82f6; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        
-        /* Badge Style */
+
+        /* FITUR 1: Badge */
         .badge { position: absolute; top: 5px; left: 5px; background: #3b82f6; color: white; font-size: 7px; font-weight: 900; padding: 2px 5px; border-radius: 3px; z-index: 10; text-transform: uppercase; }
-        /* Favorite Style */
-        .fav-btn { position: absolute; top: 5px; right: 5px; z-index: 10; background: rgba(0,0,0,0.5); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+        /* FITUR 2: Favorit (Ikon Hati) */
+        .fav-icon { position: absolute; top: 5px; right: 5px; z-index: 10; background: rgba(0,0,0,0.5); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
         .fav-active { color: #ef4444 !important; }
     </style>
 </head>
@@ -33,20 +38,29 @@
                     <input type="text" id="searchInput" placeholder="Cari animasi..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs">
                 </div>
                 <button onclick="searchMoviesOnly()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs">CARI</button>
-                <button onclick="toggleAuntModal()" class="bg-white/10 p-2 rounded-md"><i class="fas fa-user text-xs"></i></button>
+                
+                <button onclick="openAunt()" class="bg-white/10 p-2 rounded-md"><i class="fas fa-user-circle text-blue-400"></i></button>
             </div>
             <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                <button onclick="displayFavorites()" class="bg-red-600 px-3 py-2 rounded text-[10px] font-bold min-w-[100px]">FAVORIT SAYA</button>
-                
-                <select id="yearFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
+                <button onclick="showFavorites()" class="bg-pink-600 px-3 py-2 rounded text-[10px] font-bold min-w-[100px] uppercase">Favorit Saya</button>
+
+                <select id="yearFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
                     <option value="">Semua Tahun</option>
                     <script>for(let y=2026; y>=1920; y--) document.write(`<option value="${y}">${y}</option>`);</script>
                 </select>
-                <select id="countryFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
+                <select id="countryFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
                     <option value="">Negara</option>
                     <option value="ID">Indonesia 🇮🇩</option>
                     <option value="JP">Jepang 🇯🇵</option>
                     <option value="US">Amerika 🇺🇸</option>
+                    <option value="CN">China 🇨🇳</option>
+                    <option value="KR">Korea 🇰🇷</option>
+                    <option value="FR">Prancis 🇫🇷</option>
+                </select>
+                <select id="typeFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-blue-400 font-bold text-[10px] min-w-[120px]">
+                    <option value="">Semua Tipe</option>
+                    <option value="short">Film Pendek / OVA</option>
+                    <option value="movie">Bioskop (Panjang)</option>
                 </select>
             </div>
         </div>
@@ -55,24 +69,27 @@
     <main class="container mx-auto px-2 pt-32 pb-10">
         <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
         
-        <div class="flex justify-center mt-8">
-            <button id="loadMoreBtn" onclick="loadMovies(true)" class="bg-white/5 border border-white/10 px-8 py-3 rounded-lg text-[10px] font-bold text-gray-400 hover:bg-blue-600 hover:text-white transition">MUAT LEBIH BANYAK</button>
+        <div class="flex justify-center mt-10">
+            <button id="loadMoreBtn" onclick="loadMore()" class="bg-white/5 border border-white/10 px-10 py-3 rounded-lg text-[10px] font-black text-gray-500 hover:text-white hover:bg-blue-600 transition">MUAT LEBIH BANYAK</button>
         </div>
     </main>
 
     <div id="auntModal" class="modal flex items-center justify-center p-4">
-        <div class="bg-[#111] p-6 rounded-xl border border-white/10 w-full max-w-sm relative">
-            <button onclick="toggleAuntModal()" class="absolute top-2 right-4 text-gray-500">✕</button>
-            <h2 class="text-center font-black text-blue-500 mb-4">AKUN SAYA</h2>
-            <input type="text" placeholder="Username" class="w-full bg-black p-2 mb-2 rounded text-xs border border-white/10">
-            <input type="password" placeholder="Password" class="w-full bg-black p-2 mb-4 rounded text-xs border border-white/10">
-            <button class="w-full bg-blue-600 py-2 rounded font-bold text-xs uppercase">Masuk / Daftar</button>
+        <div class="bg-[#111] p-8 rounded-xl border border-white/10 w-full max-w-sm text-center shadow-2xl relative">
+            <button onclick="closeModal('auntModal')" class="absolute top-4 right-4 text-gray-500">✕</button>
+            <h2 class="text-xl font-black text-blue-500 italic mb-6">AUNT PORTAL</h2>
+            <div class="space-y-3">
+                <input type="email" placeholder="Email" class="w-full bg-black p-3 rounded text-xs border border-gray-800">
+                <input type="password" placeholder="Password" class="w-full bg-black p-3 rounded text-xs border border-gray-800">
+                <button class="w-full bg-blue-600 py-3 rounded font-black text-xs">SIGN IN</button>
+                <button class="w-full border border-white/5 py-3 rounded font-bold text-xs text-gray-600">CREATE ACCOUNT</button>
+            </div>
         </div>
     </div>
 
     <div id="movieModal" class="modal flex items-center justify-center p-2">
         <div class="bg-[#0f0f0f] w-full max-w-4xl rounded-xl overflow-hidden relative border border-white/10 shadow-2xl">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-white bg-blue-600 w-8 h-8 rounded-full z-50">✕</button>
+            <button onclick="closeModal('movieModal')" class="absolute top-4 right-4 text-white bg-blue-600 w-8 h-8 rounded-full z-50">✕</button>
             <div id="modalContent" class="flex flex-col md:flex-row"></div>
         </div>
     </div>
@@ -81,43 +98,43 @@
         const API_KEY = 'bfa7df5310c9974f62f26c6789a8c00d';
         const IMG_URL = 'https://image.tmdb.org/t/p/w500';
         let currentPage = 1;
-        let favoriteList = JSON.parse(localStorage.getItem('amnesFav')) || [];
+        let myFavs = JSON.parse(localStorage.getItem('amnes_fav')) || [];
 
-        async function loadMovies(isLoadMore = false) {
-            if(!isLoadMore) {
-                currentPage = 1;
-                document.getElementById('movieGrid').innerHTML = '<p class="col-span-full text-center py-20 italic">Memuat Koleksi...</p>';
-            }
-
+        async function loadMovies(append = false) {
+            if(!append) { currentPage = 1; document.getElementById('movieGrid').innerHTML = '<p class="col-span-full text-center py-20 italic">Memuat Koleksi...</p>'; }
+            
+            const grid = document.getElementById('movieGrid');
             const year = document.getElementById('yearFilter').value;
             const country = document.getElementById('countryFilter').value;
-            let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US&page=${currentPage}&sort_by=popularity.desc`;
-            
+            const type = document.getElementById('typeFilter').value;
+
+            let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US&page=${currentPage}`;
             if (year) url += `&primary_release_year=${year}`;
             if (country) url += `&with_origin_country=${country}`;
+            if (type === 'short') url += `&with_runtime.lte=45&sort_by=popularity.desc`;
+            else if (type === 'movie') url += `&with_runtime.gte=60&sort_by=popularity.desc`;
+            else url += `&sort_by=popularity.desc`;
 
             const res = await fetch(url);
             const data = await res.json();
-            displayMovies(data.results, isLoadMore);
-            currentPage++;
+            displayMovies(data.results, append);
         }
 
-        function displayMovies(movies, append = false) {
+        function displayMovies(movies, append) {
             const grid = document.getElementById('movieGrid');
             if(!append) grid.innerHTML = '';
-
             movies.forEach(item => {
                 if(!item.poster_path) return;
-                const isFav = favoriteList.some(f => f.id === item.id);
+                const isFav = myFavs.some(f => f.id === item.id);
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.innerHTML = `
-                    <div class="relative">
-                        <span class="badge">Animation</span>
-                        <div class="fav-btn" onclick="toggleSave(event, ${item.id}, '${item.title.replace(/'/g, "")}', '${item.poster_path}')">
-                            <i class="fas fa-heart text-[10px] ${isFav ? 'fav-active' : 'text-gray-400'}"></i>
-                        </div>
-                        <img src="${IMG_URL+item.poster_path}" class="w-full aspect-[2/3] object-cover" onclick="showDetail(${item.id})">
+                    <span class="badge">Animasi</span>
+                    <div class="fav-icon" onclick="toggleFav(event, ${item.id}, '${item.title.replace(/'/g, "")}', '${item.poster_path}')">
+                        <i class="fas fa-heart text-[10px] ${isFav ? 'fav-active' : 'text-gray-500'}"></i>
+                    </div>
+                    <div class="relative" onclick="showDetail(${item.id})">
+                        <img src="${IMG_URL+item.poster_path}" class="w-full aspect-[2/3] object-cover">
                         <div class="absolute bottom-1 right-1 bg-black/70 text-yellow-400 text-[8px] px-1 rounded">★ ${item.vote_average.toFixed(1)}</div>
                     </div>
                     <div class="p-2" onclick="showDetail(${item.id})">
@@ -128,41 +145,58 @@
             });
         }
 
-        // Fungsi Favorit (Save)
-        function toggleSave(e, id, title, poster) {
+        async function showDetail(movieId) {
+            const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=videos,credits&language=en-US`);
+            const movie = await res.json();
+            const trailer = movie.videos.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser' || v.type === 'Clip'));
+            const cast = movie.credits.cast.slice(0, 8);
+
+            document.getElementById('modalContent').innerHTML = `
+                <div class="md:w-1/3"><img src="${IMG_URL + movie.poster_path}" class="w-full h-full object-cover"></div>
+                <div class="md:w-2/3 p-6 bg-[#0a0a0a]">
+                    <h2 class="text-xl font-black text-blue-500 uppercase mb-1 italic">${movie.title}</h2>
+                    <p class="text-[10px] text-gray-500 mb-4 font-bold uppercase">📅 ${movie.release_date} | ⏱ ${movie.runtime} MIN</p>
+                    <p class="text-[11px] text-gray-300 mb-6">${movie.overview || 'Description not available.'}</p>
+                    <p class="text-[9px] font-bold text-gray-600 mb-2 uppercase italic">Voice Cast:</p>
+                    <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
+                        ${cast.map(c => `<div class="shrink-0 text-center"><img src="${c.profile_path ? IMG_URL+c.profile_path : 'https://via.placeholder.com/100'}" class="cast-img mx-auto mb-1"><p class="text-[8px] font-bold w-16 truncate text-gray-400">${c.name}</p></div>`).join('')}
+                    </div>
+                    ${trailer ? `<div class="aspect-video mb-6 border border-white/10"><iframe class="w-full h-full" src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen></iframe></div>` : ''}
+                    <div class="flex flex-col gap-2">
+                        <a href="https://vidsrc.to/embed/movie/${movie.id}" target="_blank" class="w-full bg-blue-600 text-center py-3.5 rounded text-xs font-black italic">STREAMING</a>
+                        <div class="flex gap-2">
+                            <a href="https://dl.vidsrc.vip/movie/${movie.id}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded text-[10px] font-black uppercase">DOWNLOAD HD</a>
+                            <a href="https://flashstream.cc/download/${movie.id}" target="_blank" class="flex-1 bg-white/5 text-center py-3 rounded text-[10px] font-black uppercase border border-white/10">FLASHSTREAM</a>
+                        </div>
+                    </div>
+                </div>`;
+            document.getElementById('movieModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Script Fitur Baru
+        function openAunt() { document.getElementById('auntModal').style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
+        function loadMore() { currentPage++; loadMovies(true); }
+        function toggleFav(e, id, title, poster) {
             e.stopPropagation();
-            const index = favoriteList.findIndex(f => f.id === id);
-            if(index > -1) {
-                favoriteList.splice(index, 1);
-            } else {
-                favoriteList.push({id, title, poster});
-            }
-            localStorage.setItem('amnesFav', JSON.stringify(favoriteList));
+            const idx = myFavs.findIndex(f => f.id === id);
+            if(idx > -1) myFavs.splice(idx, 1);
+            else myFavs.push({id, title, poster});
+            localStorage.setItem('amnes_fav', JSON.stringify(myFavs));
             e.target.classList.toggle('fav-active');
         }
-
-        function displayFavorites() {
+        function showFavorites() {
             const grid = document.getElementById('movieGrid');
-            grid.innerHTML = '<h2 class="col-span-full text-center py-4 font-bold text-blue-500">FAVORIT SAYA</h2>';
-            if(favoriteList.length === 0) {
-                grid.innerHTML += '<p class="col-span-full text-center py-10 text-gray-500 text-xs">Belum ada favorit.</p>';
-                return;
-            }
-            favoriteList.forEach(item => {
+            grid.innerHTML = '<h2 class="col-span-full text-center py-4 font-black text-blue-500 uppercase">Favorit Saya</h2>';
+            if(myFavs.length === 0) { grid.innerHTML += '<p class="col-span-full text-center py-10 text-gray-500 text-xs uppercase">Belum Ada Simpanan</p>'; return; }
+            myFavs.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'movie-card';
-                card.onclick = () => showDetail(item.id);
-                card.innerHTML = `
-                    <img src="${IMG_URL+item.poster}" class="w-full aspect-[2/3] object-cover">
-                    <div class="p-2"><h3 class="text-[10px] font-bold truncate">${item.title}</h3></div>`;
+                card.innerHTML = `<img src="${IMG_URL+item.poster}" class="w-full aspect-[2/3] object-cover" onclick="showDetail(${item.id})">
+                <div class="p-2 font-bold text-[10px] truncate uppercase">${item.title}</div>`;
                 grid.appendChild(card);
             });
-        }
-
-        // Fungsi Aunt (Account)
-        function toggleAuntModal() {
-            const m = document.getElementById('auntModal');
-            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
         }
 
         async function searchMoviesOnly() {
@@ -170,10 +204,11 @@
             if (!query) return;
             const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`);
             const data = await res.json();
-            displayMovies(data.results.filter(m => m.genre_ids?.includes(16)));
+            displayMovies(data.results.filter(m => m.genre_ids && m.genre_ids.includes(16)), false);
         }
 
-        async function showDetail(movieId) {
-            const modal = document.getElementById('movieModal');
-            const content = document.getElementById('modalContent');
-            const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=videos,credits&language=en-US`);
+        window.onclick = (e) => { if (e.target.className.includes('modal')) { closeModal('movieModal'); closeModal('auntModal'); } }
+        loadMovies();
+    </script>
+</body>
+</html>
