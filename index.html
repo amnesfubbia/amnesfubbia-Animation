@@ -3,37 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amnesfubbia - Animation Hub</title>
+    <title>Amnesfubbia - Animation Hub Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background-color: #060606; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
+        
+        /* Movie Card */
         .movie-card { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 12px; overflow: hidden; background: #111; height: 100%; cursor: pointer; position: relative; border: 1px solid transparent; }
         .movie-card:hover { transform: scale(1.05); border-color: #3b82f6; z-index: 10; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2); }
         
+        /* Badges */
         .new-badge { position: absolute; top: 8px; right: 8px; background: #ff0000; color: white; font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; box-shadow: 0 0 10px rgba(255,0,0,0.5); }
         .type-badge-movie { position: absolute; top: 8px; left: 8px; background: #3b82f6; color: white; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; }
         .type-badge-tv { position: absolute; top: 8px; left: 8px; background: #8b5cf6; color: white; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; }
         .type-badge-short { position: absolute; top: 8px; left: 8px; background: #10b981; color: white; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; z-index: 20; }
         
+        /* Glassmorphism Header */
+        .glass-nav { 
+            background: rgba(10, 10, 10, 0.7) !important; 
+            backdrop-filter: blur(25px) saturate(180%); 
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
         .studio-btn { min-width: 85px; height: 35px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; display: flex; items-center; justify-content: center; cursor: pointer; transition: 0.3s; font-size: 9px; font-weight: 900; color: #ccc; text-transform: uppercase; flex-shrink: 0; }
         .studio-btn:hover { background: #3b82f6; border-color: #3b82f6; color: white; }
 
         .fav-btn { position: absolute; bottom: 8px; left: 8px; color: white; font-size: 14px; z-index: 30; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); transition: 0.3s; }
         .fav-btn.active { color: #ef4444; transform: scale(1.2); }
 
+        /* Back to Top Button */
+        #backToTop { position: fixed; bottom: 30px; right: 30px; width: 45px; height: 45px; background: #3b82f6; color: white; border-radius: 50%; display: none; items-center; justify-content: center; font-size: 20px; z-index: 90; cursor: pointer; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); transition: 0.3s; }
+        #backToTop:hover { transform: translateY(-5px); background: #2563eb; }
+
         .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.98); overflow-y: auto; backdrop-filter: blur(25px); }
-        .search-container { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .episode-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); transition: 0.2s; color: white; }
         .episode-btn:hover { background: #3b82f6; border-color: #3b82f6; }
         #modalBackdrop { position: absolute; inset: 0; background-size: cover; background-position: center; filter: blur(80px) brightness(0.1); opacity: 0.8; z-index: -1; }
+        
+        /* Infinite Scroll Loader */
+        .loader-dots { display: none; justify-content: center; padding: 20px; }
+        .dot { width: 8px; height: 8px; margin: 0 4px; background: #3b82f6; border-radius: 50%; animation: blink 1.4s infinite both; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <nav class="fixed top-0 w-full z-50 search-container p-3">
+    <nav class="fixed top-0 w-full z-50 glass-nav p-3">
         <div class="container mx-auto space-y-3">
             <div class="flex items-center gap-2">
                 <span class="text-xl font-black text-blue-500 italic shrink-0 cursor-pointer" onclick="location.reload()">AMNESFUBBIA</span>
@@ -60,9 +81,7 @@
                     <option value="">All Countries</option>
                     <option value="US">USA</option><option value="JP">Japan</option><option value="CN">China</option>
                     <option value="KR">South Korea</option><option value="ID">Indonesia</option><option value="FR">France</option>
-                    <option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="DE">Germany</option>
-                    <option value="ES">Spain</option><option value="IT">Italy</option><option value="RU">Russia</option>
-                    <option value="BR">Brazil</option><option value="MX">Mexico</option><option value="AU">Australia</option>
+                    <option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="AU">Australia</option>
                 </select>
                 <select id="yearFilter" onchange="resetAndLoad()" class="bg-[#000] p-2 rounded-lg outline-none text-white text-[10px] min-w-[100px]">
                     <option value="">Year</option>
@@ -75,8 +94,12 @@
 
     <main class="container mx-auto px-2 pt-48 pb-10">
         <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"></div>
-        <div class="flex justify-center mt-12 mb-10"><button id="loadMoreBtn" onclick="loadMore()" class="bg-blue-600 px-12 py-4 rounded-full text-xs font-black uppercase tracking-widest shadow-xl">Load More</button></div>
+        <div id="scrollLoader" class="loader-dots">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
     </main>
+
+    <div id="backToTop" onclick="scrollToTop()"><i class="fas fa-arrow-up"></i></div>
 
     <div id="movieModal" class="modal flex items-center justify-center p-2">
         <div class="bg-[#0a0a0a] w-full max-w-5xl rounded-3xl overflow-hidden relative border border-white/10 shadow-2xl">
@@ -91,18 +114,44 @@
         const IMG_URL = 'https://image.tmdb.org/t/p/w500';
         const ORI_IMG = 'https://image.tmdb.org/t/p/original';
         let currentPage = 1;
+        let isLoading = false;
+        let isSearchMode = false;
         let favorites = JSON.parse(localStorage.getItem('amnesFavs')) || [];
+
+        // Fitur Back to Top Visibility
+        window.onscroll = function() {
+            const btn = document.getElementById('backToTop');
+            if (document.body.scrollTop > 500 || document.documentElement.scrollTop > 500) {
+                btn.style.display = 'flex';
+            } else {
+                btn.style.display = 'none';
+            }
+
+            // Infinite Scroll Trigger
+            if (!isLoading && !isSearchMode && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
+                loadMore();
+            }
+        };
+
+        function scrollToTop() { window.scrollTo({top: 0, behavior: 'smooth'}); }
 
         function resetAndLoad() { 
             currentPage = 1; 
-            document.getElementById('loadMoreBtn').style.display = 'block';
+            isSearchMode = false;
             document.getElementById('movieGrid').innerHTML = ''; 
             loadMovies(); 
         }
 
-        function loadMore() { currentPage++; loadMovies(); }
+        async function loadMore() {
+            if (isLoading) return;
+            currentPage++;
+            loadMovies();
+        }
 
         async function loadMovies() {
+            isLoading = true;
+            document.getElementById('scrollLoader').style.display = 'flex';
+            
             const type = document.getElementById('typeFilter').value;
             const year = document.getElementById('yearFilter').value;
             const country = document.getElementById('countryFilter').value;
@@ -110,9 +159,15 @@
             if (type === 'short') url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&with_runtime.lte=45&page=${currentPage}`;
             if (year) url += type === 'tv' ? `&first_air_date_year=${year}` : `&primary_release_year=${year}`;
             if (country) url += `&with_origin_country=${country}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            displayMovies(data.results, currentPage > 1);
+            
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                displayMovies(data.results, currentPage > 1);
+            } finally {
+                isLoading = false;
+                document.getElementById('scrollLoader').style.display = 'none';
+            }
         }
 
         function displayMovies(movies, append = false) {
@@ -138,14 +193,15 @@
         }
 
         async function searchByCompany(id, name) {
+            isSearchMode = true;
             document.getElementById('searchInput').value = name;
             const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${id}&with_genres=16&sort_by=popularity.desc`);
             const data = await res.json();
             displayMovies(data.results, false);
-            document.getElementById('loadMoreBtn').style.display = 'none';
         }
 
         async function searchByActor(actorName) {
+            isSearchMode = true;
             closeModal();
             document.getElementById('searchInput').value = actorName;
             const res = await fetch(`https://api.themoviedb.org/3/search/person?api_key=${API_KEY}&query=${encodeURIComponent(actorName)}`);
@@ -155,11 +211,11 @@
                 const movieRes = await fetch(`https://api.themoviedb.org/3/person/${actorId}/combined_credits?api_key=${API_KEY}`);
                 const movieData = await movieRes.json();
                 displayMovies(movieData.cast.filter(m => m.genre_ids?.includes(16)), false);
-                document.getElementById('loadMoreBtn').style.display = 'none';
             }
         }
 
         async function searchMoviesOnly() {
+            isSearchMode = true;
             const query = document.getElementById('searchInput').value;
             if (!query) return;
             const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
@@ -240,7 +296,7 @@
             resetAndLoad();
         }
 
-        function showFavorites() { document.getElementById('loadMoreBtn').style.display = 'none'; displayMovies(favorites, false); }
+        function showFavorites() { isSearchMode = true; displayMovies(favorites, false); }
         function closeModal() { document.getElementById('movieModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
         window.onclick = (e) => { if (e.target.id == 'movieModal') closeModal(); }
         loadMovies();
