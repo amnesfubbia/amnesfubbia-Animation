@@ -15,8 +15,13 @@
         .search-container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .cast-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #3b82f6; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .badge { position: absolute; top: 5px; left: 5px; background: #3b82f6; color: white; font-size: 7px; font-weight: 900; padding: 2px 5px; border-radius: 3px; z-index: 10; text-transform: uppercase; }
-        .fav-icon { position: absolute; top: 5px; right: 5px; z-index: 10; background: rgba(0,0,0,0.5); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+        
+        /* Badge Dynamic Style */
+        .badge { position: absolute; top: 5px; left: 5px; background: #3b82f6; color: white; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 3px; z-index: 10; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.2); }
+        .badge-tv { background: #8b5cf6; }
+        .badge-short { background: #10b981; }
+
+        .fav-icon { position: absolute; top: 5px; right: 5px; z-index: 10; background: rgba(0,0,0,0.6); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
         .fav-active { color: #ef4444 !important; }
     </style>
 </head>
@@ -27,29 +32,37 @@
             <div class="flex items-center gap-2">
                 <span class="text-lg font-black text-blue-500 italic shrink-0 cursor-pointer" onclick="location.reload()">AMNESFUBBIA</span>
                 <div class="relative flex-grow">
-                    <input type="text" id="searchInput" placeholder="Search animation..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs">
+                    <input type="text" id="searchInput" placeholder="Search animation title..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs border border-white/5">
                 </div>
-                <button onclick="searchMoviesOnly()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs uppercase">Search</button>
+                <button id="searchBtn" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs uppercase">Search</button>
                 <button onclick="openModal('auntModal')" class="bg-white/10 p-2 rounded-md text-blue-400"><i class="fas fa-user-circle"></i></button>
             </div>
+            
             <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                <button id="homeBtn" onclick="location.reload()" class="hidden bg-gray-700 px-3 py-2 rounded text-[10px] font-bold min-w-[100px] uppercase">Back to Home</button>
                 <button onclick="showFavorites()" class="bg-red-600 px-3 py-2 rounded text-[10px] font-bold min-w-[100px] uppercase">My Favorites</button>
-                <select id="yearFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[90px]">
+                
+                <select id="yearFilter" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[80px]">
                     <option value="">Year</option>
                     <script>for(let y=2026; y>=1920; y--) document.write(`<option value="${y}">${y}</option>`);</script>
                 </select>
-                <select id="countryFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[90px]">
+
+                <select id="countryFilter" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[90px]">
                     <option value="">Country</option>
                     <option value="JP">Japan 🇯🇵</option>
                     <option value="US">USA 🇺🇸</option>
                     <option value="ID">Indonesia 🇮🇩</option>
                     <option value="CN">China 🇨🇳</option>
                     <option value="KR">Korea 🇰🇷</option>
+                    <option value="FR">France 🇫🇷</option>
+                    <option value="GB">UK 🇬🇧</option>
                 </select>
-                <select id="typeFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-blue-400 font-bold text-[10px] min-w-[110px]">
+
+                <select id="typeFilter" class="bg-[#000] p-2 rounded outline-none text-blue-400 font-bold text-[10px] min-w-[100px]">
                     <option value="">All Types</option>
-                    <option value="short">Short / OVA</option>
-                    <option value="movie">Full Movie</option>
+                    <option value="movie">Movie</option>
+                    <option value="tv">TV Show</option>
+                    <option value="short">Short Film</option>
                 </select>
             </div>
         </div>
@@ -57,115 +70,151 @@
 
     <main class="container mx-auto px-2 pt-32 pb-10">
         <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
-        <div class="flex justify-center mt-10">
-            <button id="loadMoreBtn" onclick="loadMore()" class="bg-white/5 border border-white/10 px-10 py-3 rounded-lg text-[10px] font-black text-gray-500 hover:text-white uppercase">Load More</button>
+        <div class="flex justify-center mt-10" id="paginationArea">
+            <button id="loadMoreBtn" class="bg-white/5 border border-white/10 px-10 py-3 rounded-lg text-[10px] font-black text-gray-500 hover:text-white uppercase transition">Load More</button>
         </div>
     </main>
 
     <div id="auntModal" class="modal">
-        <div class="bg-[#111] p-8 rounded-xl border border-white/10 w-full max-w-sm text-center relative mx-4">
+        <div class="bg-[#111] p-8 rounded-xl border border-white/10 w-full max-w-sm text-center relative mx-4 shadow-2xl">
             <button onclick="closeModal('auntModal')" class="absolute top-4 right-4 text-gray-500">✕</button>
-            <h2 class="text-xl font-black text-blue-500 italic mb-6">MEMBER LOGIN</h2>
+            <h2 class="text-xl font-black text-blue-500 italic mb-6 uppercase">Aunt Access</h2>
             <div class="space-y-3">
                 <input type="email" placeholder="Email" class="w-full bg-black p-3 rounded text-xs border border-gray-800">
                 <input type="password" placeholder="Password" class="w-full bg-black p-3 rounded text-xs border border-gray-800">
-                <button class="w-full bg-blue-600 py-3 rounded font-black text-xs">LOGIN</button>
+                <button class="w-full bg-blue-600 py-3 rounded font-black text-xs uppercase">Sign In</button>
+                <p class="text-[10px] text-gray-600 uppercase font-bold cursor-pointer">Create New Account</p>
             </div>
         </div>
     </div>
 
     <div id="movieModal" class="modal">
         <div class="bg-[#0f0f0f] w-full max-w-4xl rounded-xl overflow-hidden relative border border-white/10 shadow-2xl mx-2 my-10">
-            <button onclick="closeModal('movieModal')" class="absolute top-4 right-4 text-white bg-blue-600 w-8 h-8 rounded-full z-50">✕</button>
+            <button onclick="closeModal('movieModal')" class="absolute top-4 right-4 text-white bg-blue-600 w-8 h-8 rounded-full z-50 shadow-lg">✕</button>
             <div id="modalContent" class="flex flex-col md:flex-row"></div>
         </div>
     </div>
 
     <script>
         const API_KEY = 'bfa7df5310c9974f62f26c6789a8c00d';
-        const IMG_URL = 'https://image.tmdb.org/t/p/w500';
+        const IMG_URL = 'https://image.tmdb.org/p/w500';
         let currentPage = 1;
         let myFavs = JSON.parse(localStorage.getItem('amnes_fav')) || [];
 
-        async function loadMovies(append = false) {
-            if(!append) { currentPage = 1; document.getElementById('movieGrid').innerHTML = ''; }
+        // UI Helpers
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
+
+        async function fetchMovies(page = 1, append = false) {
+            if (!append) {
+                document.getElementById('movieGrid').innerHTML = '<div class="col-span-full text-center py-20 text-blue-500 animate-pulse font-bold">LOADING HUB...</div>';
+            }
+
             const year = document.getElementById('yearFilter').value;
             const country = document.getElementById('countryFilter').value;
             const type = document.getElementById('typeFilter').value;
 
-            let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&page=${currentPage}&language=en-US&sort_by=popularity.desc`;
-            if (year) url += `&primary_release_year=${year}`;
+            // Determine if we fetch from Movie or TV endpoint
+            let endpoint = (type === 'tv') ? 'tv' : 'movie';
+            let url = `https://api.themoviedb.org/3/discover/${endpoint}?api_key=${API_KEY}&with_genres=16&language=en-US&page=${page}&sort_by=popularity.desc`;
+            
+            if (year) url += (endpoint === 'movie') ? `&primary_release_year=${year}` : `&first_air_date_year=${year}`;
             if (country) url += `&with_origin_country=${country}`;
             if (type === 'short') url += `&with_runtime.lte=45`;
-            else if (type === 'movie') url += `&with_runtime.gte=60`;
 
-            const res = await fetch(url);
-            const data = await res.json();
-            displayMovies(data.results, append);
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                renderMovies(data.results, append, endpoint, type);
+            } catch (err) {
+                console.error("Fetch Error:", err);
+            }
         }
 
-        function displayMovies(movies, append) {
+        function renderMovies(movies, append, category, selectedType) {
             const grid = document.getElementById('movieGrid');
+            if (!append) grid.innerHTML = '';
+
             movies.forEach(item => {
-                if(!item.poster_path) return;
+                if (!item.poster_path) return;
                 const isFav = myFavs.some(f => f.id === item.id);
+                
+                // Set Badge Label
+                let badgeLabel = "MOVIE";
+                let badgeClass = "badge";
+                if (category === 'tv') { badgeLabel = "TV SHOW"; badgeClass += " badge-tv"; }
+                else if (item.runtime <= 45 || selectedType === 'short') { badgeLabel = "SHORT"; badgeClass += " badge-short"; }
+
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.innerHTML = `
-                    <span class="badge">Animation</span>
-                    <div class="fav-icon" onclick="toggleFav(event, ${item.id}, '${item.title.replace(/'/g, "")}', '${item.poster_path}')">
-                        <i class="fas fa-heart text-[10px] ${isFav ? 'fav-active' : 'text-gray-500'}"></i>
+                    <span class="${badgeClass}">${badgeLabel}</span>
+                    <div class="fav-icon" onclick="toggleFav(event, ${item.id}, '${(item.title || item.name).replace(/'/g, "")}', '${item.poster_path}')">
+                        <i class="fas fa-heart text-[12px] ${isFav ? 'fav-active' : 'text-gray-500'}"></i>
                     </div>
-                    <img src="${IMG_URL+item.poster_path}" class="w-full aspect-[2/3] object-cover" onclick="showDetail(${item.id})">
-                    <div class="p-2" onclick="showDetail(${item.id})">
-                        <h3 class="text-[10px] font-bold truncate uppercase">${item.title}</h3>
-                        <p class="text-[9px] text-gray-500">${item.release_date?.split('-')[0] || 'N/A'}</p>
+                    <img src="${IMG_URL + item.poster_path}" class="w-full aspect-[2/3] object-cover" onclick="showDetail(${item.id}, '${category}')">
+                    <div class="p-2" onclick="showDetail(${item.id}, '${category}')">
+                        <h3 class="text-[10px] font-black truncate uppercase">${item.title || item.name}</h3>
+                        <p class="text-[9px] text-gray-500 font-bold">${(item.release_date || item.first_air_date || '').split('-')[0]}</p>
                     </div>`;
                 grid.appendChild(card);
             });
         }
 
-        async function showDetail(movieId) {
-            const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=videos,credits&language=en-US`);
-            const movie = await res.json();
-            const trailer = movie.videos.results.find(v => v.site === 'YouTube');
-            const cast = movie.credits.cast.slice(0, 8);
-            const isShort = movie.runtime <= 45;
+        async function showDetail(id, category) {
+            const res = await fetch(`https://api.themoviedb.org/3/${category}/${id}?api_key=${API_KEY}&append_to_response=videos,credits&language=en-US`);
+            const data = await res.json();
+            const trailer = data.videos.results.find(v => v.site === 'YouTube');
+            const cast = data.credits ? data.credits.cast.slice(0, 8) : [];
+            const isShort = data.runtime && data.runtime <= 45;
 
-            // Player logic: If short, prioritize YouTube video
+            // Player logic
             const videoId = trailer ? trailer.key : '';
-            const streamLink = isShort && videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : `https://vidsrc.to/embed/movie/${movie.id}`;
+            let watchLink = `https://vidsrc.to/embed/${category}/${id}`;
+            let downloadLink = `https://dl.vidsrc.vip/${category}/${id}`;
+
+            // If Short Movie, use YouTube directly in frame
+            if (isShort && videoId) {
+                watchLink = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+                downloadLink = `https://ssyoutube.com/en1/youtube-video-downloader/`;
+            }
 
             document.getElementById('modalContent').innerHTML = `
-                <div class="md:w-1/3"><img src="${IMG_URL + movie.poster_path}" class="w-full h-full object-cover"></div>
+                <div class="md:w-1/3 h-full"><img src="${IMG_URL + data.poster_path}" class="w-full h-full object-cover"></div>
                 <div class="md:w-2/3 p-6 bg-[#0a0a0a]">
-                    <h2 class="text-xl font-black text-blue-500 uppercase mb-1 italic">${movie.title}</h2>
-                    <p class="text-[10px] text-gray-500 mb-4 font-bold uppercase">📅 ${movie.release_date} | ⏱ ${movie.runtime} MIN</p>
-                    <p class="text-[11px] text-gray-300 mb-6">${movie.overview}</p>
-                    <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
-                        ${cast.map(c => `<div class="shrink-0 text-center"><img src="${c.profile_path ? IMG_URL+c.profile_path : 'https://via.placeholder.com/100'}" class="cast-img mx-auto mb-1"><p class="text-[8px] font-bold w-16 truncate text-gray-400 uppercase">${c.name}</p></div>`).join('')}
+                    <h2 class="text-xl font-black text-blue-500 uppercase mb-1 italic leading-tight">${data.title || data.name}</h2>
+                    <p class="text-[10px] text-gray-500 mb-4 font-bold uppercase tracking-widest">
+                        ${data.release_date || data.first_air_date} | ${data.runtime || data.episode_run_time || '?'} MIN
+                    </p>
+                    <p class="text-[11px] text-gray-400 mb-6 leading-relaxed">${data.overview || 'No description available.'}</p>
+                    
+                    <div class="flex gap-3 overflow-x-auto pb-4 scrollbar-hide mb-4">
+                        ${cast.map(c => `
+                            <div class="shrink-0 text-center">
+                                <img src="${c.profile_path ? IMG_URL+c.profile_path : 'https://via.placeholder.com/100'}" class="cast-img mx-auto mb-1">
+                                <p class="text-[8px] font-bold w-14 truncate text-gray-500 uppercase">${c.name}</p>
+                            </div>`).join('')}
                     </div>
-                    <div id="playerArea" class="aspect-video mb-6 border border-white/10">
-                        ${videoId ? `<iframe class="w-full h-full" src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>` : `<div class="flex items-center justify-center h-full text-gray-600">No Trailer Available</div>`}
+
+                    <div id="mainPlayer" class="aspect-video mb-6 border border-white/10 bg-black rounded shadow-inner">
+                        ${videoId ? `<iframe class="w-full h-full" src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>` : `<div class="flex items-center justify-center h-full text-gray-700 text-xs">NO TRAILER AVAILABLE</div>`}
                     </div>
+
                     <div class="flex flex-col gap-2">
-                        <button onclick="playNow('${streamLink}')" class="w-full bg-blue-600 py-3.5 rounded text-xs font-black italic uppercase">Watch Now</button>
+                        <button onclick="startWatch('${watchLink}')" class="w-full bg-blue-600 py-4 rounded text-xs font-black italic uppercase tracking-tighter shadow-lg">Watch Now</button>
                         <div class="flex gap-2">
-                            <a href="${isShort ? 'https://ssyoutube.com/en1/youtube-video-downloader/' : 'https://dl.vidsrc.vip/movie/' + movie.id}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded text-[10px] font-black uppercase">Download HD</a>
-                            <a href="https://flashstream.cc/download/${movie.id}" target="_blank" class="flex-1 bg-white/5 text-center py-3 rounded text-[10px] font-black uppercase border border-white/10">Flashstream</a>
+                            <a href="${downloadLink}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded text-[10px] font-black uppercase">Download HD</a>
+                            <a href="https://flashstream.cc/download/${id}" target="_blank" class="flex-1 bg-white/5 border border-white/10 text-center py-3 rounded text-[10px] font-black uppercase">Flashstream</a>
                         </div>
                     </div>
                 </div>`;
             openModal('movieModal');
         }
 
-        function playNow(link) {
-            document.getElementById('playerArea').innerHTML = `<iframe class="w-full h-full" src="${link}" allow="autoplay" allowfullscreen></iframe>`;
+        function startWatch(url) {
+            document.getElementById('mainPlayer').innerHTML = `<iframe class="w-full h-full" src="${url}" allow="autoplay" allowfullscreen></iframe>`;
         }
 
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
-        function loadMore() { currentPage++; loadMovies(true); }
         function toggleFav(e, id, title, poster) {
             e.stopPropagation();
             const idx = myFavs.findIndex(f => f.id === id);
@@ -174,27 +223,55 @@
             localStorage.setItem('amnes_fav', JSON.stringify(myFavs));
             e.target.classList.toggle('fav-active');
         }
+
         function showFavorites() {
+            document.getElementById('homeBtn').classList.remove('hidden');
+            document.getElementById('paginationArea').classList.add('hidden');
             const grid = document.getElementById('movieGrid');
-            grid.innerHTML = '<h2 class="col-span-full text-center py-4 font-black text-blue-500 uppercase">My Favorites</h2>';
-            if(myFavs.length === 0) { grid.innerHTML += '<p class="col-span-full text-center py-10 text-gray-600 text-xs uppercase">No Saved Items</p>'; return; }
+            grid.innerHTML = '<h2 class="col-span-full text-center py-4 font-black text-blue-500 uppercase tracking-widest italic">❤ My Favorites</h2>';
+            
+            if(myFavs.length === 0) {
+                grid.innerHTML += '<p class="col-span-full text-center py-20 text-gray-600 uppercase text-xs">Your list is empty</p>';
+                return;
+            }
+
             myFavs.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'movie-card';
-                card.innerHTML = `<img src="${IMG_URL+item.poster}" class="w-full aspect-[2/3] object-cover" onclick="showDetail(${item.id})">
-                <div class="p-2 font-bold text-[10px] truncate uppercase">${item.title}</div>`;
+                card.innerHTML = `
+                    <img src="${IMG_URL + item.poster}" class="w-full aspect-[2/3] object-cover" onclick="showDetail(${item.id}, 'movie')">
+                    <div class="p-2 font-black text-[10px] truncate uppercase">${item.title}</div>`;
                 grid.appendChild(card);
             });
         }
+
         async function searchMoviesOnly() {
             const query = document.getElementById('searchInput').value;
             if (!query) return;
-            const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`);
-            const data = await res.json();
-            displayMovies(data.results.filter(m => m.genre_ids && m.genre_ids.includes(16)), false);
+            document.getElementById('movieGrid').innerHTML = '<div class="col-span-full text-center py-20 text-blue-500 font-bold uppercase">Searching...</div>';
+            
+            try {
+                const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`);
+                const data = await res.json();
+                const filtered = data.results.filter(m => m.genre_ids && m.genre_ids.includes(16));
+                renderMovies(filtered, false, 'movie', '');
+            } catch (err) { console.error(err); }
         }
-        window.onclick = (e) => { if (e.target.className.includes('modal')) { closeModal('movieModal'); closeModal('auntModal'); } }
-        loadMovies();
+
+        // Event Listeners
+        document.getElementById('searchBtn').addEventListener('click', searchMoviesOnly);
+        document.getElementById('loadMoreBtn').addEventListener('click', () => {
+            currentPage++;
+            fetchMovies(currentPage, true);
+        });
+        document.querySelectorAll('select').forEach(s => s.addEventListener('change', () => fetchMovies(1, false)));
+
+        // Initial Load
+        fetchMovies();
+
+        window.onclick = (e) => { 
+            if (e.target.className === 'modal') { closeModal('movieModal'); closeModal('auntModal'); } 
+        }
     </script>
 </body>
 </html>
