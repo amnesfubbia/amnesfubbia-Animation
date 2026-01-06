@@ -3,196 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amnesfubbia - Animation Hub</title>
+    <title>Amnesfubbia - CGI Short Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background-color: #060606; color: #ffffff; font-family: 'Inter', sans-serif; margin: 0; }
-        .movie-card { transition: transform 0.3s ease; border-radius: 8px; overflow: hidden; background: #111; height: 100%; cursor: pointer; }
+        .movie-card { transition: transform 0.3s ease; border-radius: 8px; overflow: hidden; background: #111; height: 100%; cursor: pointer; border: 1px solid #222; position: relative; }
         .movie-card:hover { transform: scale(1.05); border: 1px solid #3b82f6; }
-        .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.95); overflow-y: auto; }
-        .search-container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .cast-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #3b82f6; }
+        .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.98); overflow-y: auto; }
+        .search-container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .badge-cgi { position: absolute; top: 8px; left: 8px; background: linear-gradient(to right, #3b82f6, #8b5cf6); font-size: 8px; font-weight: 900; padding: 2px 6px; border-radius: 4px; z-index: 10; }
     </style>
 </head>
 <body>
 
     <nav class="fixed top-0 w-full z-50 search-container p-3">
-        <div class="container mx-auto space-y-2">
-            <div class="flex items-center gap-2">
-                <span class="text-lg font-black text-blue-500 italic shrink-0" onclick="location.reload()">AMNESFUBBIA</span>
-                <div class="relative flex-grow">
-                    <input type="text" id="searchInput" placeholder="Cari animasi..." class="w-full bg-[#000] p-2 pl-3 rounded-md outline-none focus:border-blue-500 text-white text-xs">
-                </div>
-                <button onclick="searchMoviesOnly()" class="bg-blue-600 px-4 py-2 rounded-md font-bold text-xs">CARI</button>
-            </div>
-            <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                <select id="yearFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
-                    <option value="">Semua Tahun</option>
-                    <script>for(let y=2026; y>=1920; y--) document.write(`<option value="${y}">${y}</option>`);</script>
-                </select>
-                <select id="countryFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-white text-[10px] min-w-[100px]">
-                    <option value="">Negara</option>
-                    <option value="ID">Indonesia 🇮🇩</option>
-                    <option value="JP">Jepang 🇯🇵</option>
-                    <option value="US">Amerika 🇺🇸</option>
-                    <option value="CN">China 🇨🇳</option>
-                    <option value="KR">Korea 🇰🇷</option>
-                    <option value="FR">Prancis 🇫🇷</option>
-                    <option value="GB">Inggris 🇬🇧</option>
-                    <option value="DE">Jerman 🇩🇪</option>
-                    <option value="CA">Kanada 🇨🇦</option>
-                    <option value="ES">Spanyol 🇪🇸</option>
-                </select>
-                <select id="typeFilter" onchange="loadMovies()" class="bg-[#000] p-2 rounded outline-none text-blue-400 font-bold text-[10px] min-w-[120px]">
-                    <option value="">Semua Tipe</option>
-                    <option value="short">Film Pendek / OVA</option>
-                    <option value="movie">Bioskop (Panjang)</option>
-                </select>
+        <div class="container mx-auto flex items-center justify-between">
+            <span class="text-lg font-black text-blue-500 italic cursor-pointer" onclick="location.reload()">AMNESFUBBIA</span>
+            <div class="flex gap-4">
+                <button onclick="toggleAuthModal()" class="text-[10px] font-bold text-gray-400 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1.5 rounded-md">Login / Sign Up</button>
             </div>
         </div>
     </nav>
 
-    <main class="container mx-auto px-2 pt-32 pb-10">
-        <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
+    <main class="container mx-auto px-4 pt-24 pb-20">
+        <div class="flex items-center gap-2 mb-6">
+            <h2 class="text-blue-500 font-black italic tracking-tighter uppercase">CGI SHORT DATABASE</h2>
+            <span class="bg-blue-600/20 text-blue-400 text-[8px] px-2 py-0.5 rounded font-bold uppercase">Version 2.0</span>
+        </div>
+
+        <div id="movieGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+            </div>
+        
+        <div class="flex justify-center mt-12">
+            <button id="loadMoreBtn" class="bg-white/5 border border-white/10 text-gray-400 px-8 py-3 rounded-lg text-xs font-black italic hover:bg-blue-600 hover:text-white transition">MUAT LEBIH BANYAK</button>
+        </div>
     </main>
 
     <div id="movieModal" class="modal flex items-center justify-center p-2">
-        <div class="bg-[#0f0f0f] w-full max-w-4xl rounded-xl overflow-hidden relative border border-white/10 shadow-2xl">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-white bg-blue-600 w-8 h-8 rounded-full z-50">✕</button>
-            <div id="modalContent" class="flex flex-col md:flex-row"></div>
+        <div class="bg-[#0a0a0a] w-full max-w-5xl rounded-2xl overflow-hidden relative border border-white/10 shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-5 right-5 text-white bg-blue-600 w-10 h-10 rounded-full z-50 flex items-center justify-center font-bold">✕</button>
+            <div id="modalContent" class="flex flex-col lg:flex-row"></div>
+        </div>
+    </div>
+
+    <div id="authModal" class="modal flex items-center justify-center p-4">
+        <div class="bg-[#111] p-8 rounded-xl border border-white/10 w-full max-w-sm text-center">
+            <h2 class="text-xl font-black text-blue-500 mb-6 italic tracking-widest uppercase text-left border-l-4 border-blue-500 pl-3">Member Access</h2>
+            <div class="space-y-3 text-left">
+                <div>
+                    <label class="text-[9px] font-bold text-gray-500 uppercase">Email Address</label>
+                    <input type="email" placeholder="Enter your email" class="w-full bg-black p-3 rounded-lg text-xs outline-none border border-gray-800 focus:border-blue-500 mt-1">
+                </div>
+                <div>
+                    <label class="text-[9px] font-bold text-gray-500 uppercase">Password</label>
+                    <input type="password" placeholder="••••••••" class="w-full bg-black p-3 rounded-lg text-xs outline-none border border-gray-800 focus:border-blue-500 mt-1">
+                </div>
+                <button class="w-full bg-blue-600 py-3 rounded-lg font-black text-xs mt-4">LOG IN</button>
+                <button class="w-full border border-white/10 py-3 rounded-lg font-black text-xs hover:bg-white/5 transition">CREATE ACCOUNT</button>
+            </div>
+            <button onclick="toggleAuthModal()" class="mt-8 text-[9px] text-gray-600 uppercase font-black hover:text-white transition tracking-widest">Close Menu</button>
         </div>
     </div>
 
     <script>
-        const API_KEY = 'bfa7df5310c9974f62f26c6789a8c00d';
-        const IMG_URL = 'https://image.tmdb.org/t/p/w500';
-
-        async function loadMovies() {
-            const grid = document.getElementById('movieGrid');
-            const year = document.getElementById('yearFilter').value;
-            const country = document.getElementById('countryFilter').value;
-            const type = document.getElementById('typeFilter').value;
-            
-            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Memuat Koleksi...</p>';
-
-            let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US`;
-            
-            if (year) url += `&primary_release_year=${year}`;
-            if (country) url += `&with_origin_country=${country}`;
-            
-            if (type === 'short') {
-                // Logika diperluas: durasi sangat pendek dan urutan dari yang paling populer
-                url += `&with_runtime.lte=45&sort_by=popularity.desc`;
-            } else if (type === 'movie') {
-                url += `&with_runtime.gte=60&sort_by=popularity.desc`;
-            } else {
-                url += `&sort_by=popularity.desc`;
+        // DATABASE MANUAL CGI SHORT (Full Movie Version)
+        const cgiDatabase = [
+            {
+                id: 1,
+                title: "Sintel",
+                year: "2010",
+                duration: "14 Min",
+                desc: "Seorang pejuang wanita bernama Sintel mencari bayi naga yang menjadi sahabatnya. Sebuah mahakarya dari Blender Foundation.",
+                poster: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Sintel_poster.jpg",
+                videoUrl: "https://www.youtube.com/embed/eRsGyueVLvQ",
+                rating: "8.2"
+            },
+            {
+                id: 2,
+                title: "Spring",
+                year: "2019",
+                duration: "8 Min",
+                desc: "Kisah seorang gembala dan anjingnya yang menghadapi roh-roh kuno untuk mengembalikan musim semi.",
+                poster: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Spring_-_Blender_Open_Movie.png/800px-Spring_-_Blender_Open_Movie.png",
+                videoUrl: "https://www.youtube.com/embed/m6p8Y38Kx7M",
+                rating: "8.5"
+            },
+            {
+                id: 3,
+                title: "The Smear",
+                year: "2023",
+                duration: "4 Min",
+                desc: "Eksperimen CGI modern yang menampilkan visual surreal dan teknik rendering tingkat tinggi.",
+                poster: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=500",
+                videoUrl: "https://www.youtube.com/embed/lSIdpS_yU_Y",
+                rating: "7.9"
+            },
+            {
+                id: 4,
+                title: "Big Buck Bunny",
+                year: "2008",
+                duration: "10 Min",
+                desc: "Kelinci raksasa yang ramah dipaksa membalas dendam pada tiga tupai pengganggu.",
+                poster: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Big_buck_bunny_poster_big.jpg",
+                videoUrl: "https://www.youtube.com/embed/aqz-KE-bpKQ",
+                rating: "8.0"
             }
+        ];
 
-            const res = await fetch(url);
-            const data = await res.json();
-            displayMovies(data.results);
-        }
-
-        async function searchMoviesOnly() {
-            const query = document.getElementById('searchInput').value;
-            if (!query) return;
-            const grid = document.getElementById('movieGrid');
-            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Mencari...</p>';
-            const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`;
-            const res = await fetch(url);
-            const data = await res.json();
-            const animationOnly = data.results.filter(m => m.genre_ids && m.genre_ids.includes(16));
-            displayMovies(animationOnly);
-        }
-
-        async function loadCastMovies(personId) {
-            closeModal();
-            const grid = document.getElementById('movieGrid');
-            grid.innerHTML = '<p class="col-span-full text-center py-20 italic">Memuat Animasi Pemeran...</p>';
-            const url = `https://api.themoviedb.org/3/person/${personId}/movie_credits?api_key=${API_KEY}&language=en-US`;
-            const res = await fetch(url);
-            const data = await res.json();
-            const animationOnly = data.cast.filter(m => m.genre_ids && m.genre_ids.includes(16));
-            displayMovies(animationOnly);
-        }
-
-        function displayMovies(movies) {
+        function loadCGI() {
             const grid = document.getElementById('movieGrid');
             grid.innerHTML = '';
-            if (!movies || movies.length === 0) {
-                grid.innerHTML = '<p class="col-span-full text-center py-20 text-gray-500 text-xs">Tidak ditemukan.</p>';
-                return;
-            }
-            movies.forEach(item => {
-                if(!item.poster_path) return;
+            cgiDatabase.forEach(movie => {
                 const card = document.createElement('div');
                 card.className = 'movie-card';
-                card.onclick = () => showDetail(item.id);
+                card.onclick = () => showMovieDetail(movie.id);
                 card.innerHTML = `
-                    <div class="relative">
-                        <img src="${IMG_URL+item.poster_path}" class="w-full aspect-[2/3] object-cover">
-                        <div class="absolute bottom-1 right-1 bg-black/70 text-yellow-400 text-[8px] px-1 rounded">★ ${item.vote_average.toFixed(1)}</div>
-                    </div>
-                    <div class="p-2">
-                        <h3 class="text-[10px] font-bold truncate">${item.title}</h3>
-                        <p class="text-[9px] text-gray-500">${item.release_date ? item.release_date.split('-')[0] : 'N/A'}</p>
+                    <span class="badge-cgi uppercase">FULL MOVIE</span>
+                    <img src="${movie.poster}" class="w-full aspect-[2/3] object-cover">
+                    <div class="p-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <h3 class="text-[10px] font-black truncate text-blue-100 uppercase">${movie.title}</h3>
+                            <span class="text-yellow-500 text-[8px] font-bold">★ ${movie.rating}</span>
+                        </div>
+                        <p class="text-[8px] text-gray-500 font-bold">${movie.year} • ${movie.duration} • CGI ANIMATION</p>
                     </div>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        async function showDetail(movieId) {
+        function showMovieDetail(id) {
+            const movie = cgiDatabase.find(m => m.id === id);
             const modal = document.getElementById('movieModal');
             const content = document.getElementById('modalContent');
-            const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=videos,credits&language=en-US`);
-            const movie = await res.json();
             
-            const trailer = movie.videos.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser' || v.type === 'Clip'));
-            const cast = movie.credits.cast.slice(0, 8);
-
             content.innerHTML = `
-                <div class="md:w-1/3"><img src="${IMG_URL + movie.poster_path}" class="w-full h-full object-cover"></div>
-                <div class="md:w-2/3 p-6 bg-[#0a0a0a]">
-                    <h2 class="text-xl font-black text-blue-500 uppercase mb-1 italic">${movie.title}</h2>
-                    <p class="text-[10px] text-gray-500 mb-4 font-bold uppercase">📅 ${movie.release_date} | ⏱ ${movie.runtime} MIN</p>
-                    <p class="text-[11px] text-gray-300 leading-relaxed mb-6">${movie.overview || 'Description not available.'}</p>
+                <div class="lg:w-1/3"><img src="${movie.poster}" class="w-full h-full object-cover"></div>
+                <div class="lg:w-2/3 p-8 bg-[#0a0a0a] relative">
+                    <div class="mb-6">
+                        <h2 class="text-3xl font-black text-blue-500 uppercase italic mb-1">${movie.title}</h2>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${movie.year} | ${movie.duration} | CGI FULL VERSION</p>
+                    </div>
                     
-                    <p class="text-[9px] font-bold text-gray-600 mb-2 uppercase italic">Voice Cast:</p>
-                    <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
-                        ${cast.map(c => `
-                            <div class="shrink-0 text-center cursor-pointer" onclick="loadCastMovies('${c.id}')">
-                                <img src="${c.profile_path ? IMG_URL+c.profile_path : 'https://via.placeholder.com/100'}" class="cast-img mx-auto mb-1">
-                                <p class="text-[8px] font-bold w-16 truncate text-gray-400">${c.name}</p>
-                            </div>
-                        `).join('')}
+                    <p class="text-sm text-gray-400 mb-8 leading-relaxed">${movie.desc}</p>
+                    
+                    <div class="rounded-xl overflow-hidden border border-white/10 aspect-video mb-8 shadow-2xl bg-black">
+                        <iframe class="w-full h-full" src="${movie.videoUrl}?autoplay=1" frameborder="0" allowfullscreen></iframe>
                     </div>
 
-                    ${trailer ? `
-                        <div class="rounded-lg overflow-hidden border border-white/10 mb-6 aspect-video">
-                            <iframe class="w-full h-full" src="https://www.youtube.com/embed/${trailer.key}" frameborder="0" allowfullscreen></iframe>
-                        </div>
-                    ` : ''}
-
-                    <div class="flex flex-col gap-2">
-                        <a href="https://vidsrc.to/embed/movie/${movie.id}" target="_blank" class="w-full bg-blue-600 text-center py-3.5 rounded-lg text-xs font-black uppercase italic tracking-widest">STREAMING</a>
-                        <div class="flex gap-2">
-                            <a href="https://dl.vidsrc.vip/movie/${movie.id}" target="_blank" class="flex-1 bg-green-600 text-center py-3 rounded-lg text-[10px] font-black uppercase">DOWNLOAD HD</a>
-                            <a href="https://flashstream.cc/download/${movie.id}" target="_blank" class="flex-1 bg-white/5 text-center py-3 rounded-lg text-[10px] font-black uppercase border border-white/10">FLASHSTREAM</a>
-                        </div>
+                    <div class="flex gap-3">
+                        <button class="flex-grow bg-blue-600 py-4 rounded-xl text-xs font-black uppercase italic tracking-widest">NOW PLAYING: FULL MOVIE</button>
+                        <button class="bg-white/5 border border-white/10 px-6 rounded-xl text-red-500 hover:bg-red-500 hover:text-white transition"><i class="fas fa-heart"></i></button>
                     </div>
-                </div>`;
+                </div>
+            `;
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
 
-        function closeModal() { document.getElementById('movieModal').style.display = 'none'; document.body.style.overflow = 'auto'; document.getElementById('modalContent').innerHTML = ''; }
-        window.onclick = (e) => { if (e.target.id == 'movieModal') closeModal(); }
-        loadMovies();
+        function toggleAuthModal() {
+            const m = document.getElementById('authModal');
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('movieModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        window.onclick = (e) => { 
+            if (e.target.id == 'movieModal') closeModal(); 
+            if (e.target.id == 'authModal') toggleAuthModal();
+        }
+        
+        loadCGI();
     </script>
 </body>
 </html>
