@@ -6,31 +6,36 @@
 <title>Amnesfubbia – Animation Hub</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
+
 <style>
 body{background:#060606;color:#fff;font-family:Inter,sans-serif}
-.movie-card{background:#111;border-radius:8px;overflow:hidden;cursor:pointer;transition:.3s}
-.movie-card:hover{transform:scale(1.05);border:1px solid #3b82f6}
+.movie-card{background:#111;border-radius:8px;overflow:hidden;cursor:pointer;transition:.25s}
+.movie-card:hover{transform:scale(1.04);border:1px solid #3b82f6}
 .badge{position:absolute;top:6px;left:6px;font-size:9px;font-weight:900;padding:2px 6px;border-radius:4px}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:100}
-.cast-img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #3b82f6}
+.cast-img{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid #3b82f6}
+.scrollbar-hide::-webkit-scrollbar{display:none}
 </style>
 </head>
 
 <body>
 
+<!-- NAV -->
 <nav class="fixed top-0 w-full bg-black/90 p-3 z-50">
-<div class="flex gap-2">
+<div class="flex gap-2 items-center">
 <span onclick="location.reload()" class="font-black italic text-blue-500 cursor-pointer">AMNESFUBBIA</span>
 <input id="searchInput" placeholder="Cari animasi..." class="flex-1 bg-black p-2 text-xs rounded">
-<button onclick="search()" class="bg-blue-600 px-4 py-2 text-xs rounded font-bold">CARI</button>
+<button onclick="searchMovies()" class="bg-blue-600 px-4 py-2 text-xs rounded font-bold">CARI</button>
 </div>
 </nav>
 
-<main class="pt-20 px-2">
+<!-- GRID -->
+<main class="pt-20 px-2 pb-10">
 <div id="movieGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2"></div>
 </main>
 
-<div id="modal" class="modal flex items-center justify-center p-2">
+<!-- MODAL -->
+<div id="movieModal" class="modal flex items-center justify-center p-2">
 <div class="bg-[#0f0f0f] max-w-4xl w-full rounded-xl overflow-hidden relative">
 <button onclick="closeModal()" class="absolute top-3 right-3 bg-blue-600 w-8 h-8 rounded-full">✕</button>
 <div id="modalContent" class="flex flex-col md:flex-row"></div>
@@ -38,74 +43,83 @@ body{background:#060606;color:#fff;font-family:Inter,sans-serif}
 </div>
 
 <script>
-const API='https://api.themoviedb.org/3';
-const KEY='bfa7df5310c9974f62f26c6789a8c00d';
-const IMG='https://image.tmdb.org/t/p/w500';
+const API = 'https://api.themoviedb.org/3';
+const KEY = 'bfa7df5310c9974f62f26c6789a8c00d';
+const IMG = 'https://image.tmdb.org/t/p/w500';
 
-async function load(){
-movieGrid.innerHTML='Memuat...';
+/* LOAD DEFAULT */
+async function loadMovies(){
+movieGrid.innerHTML='<p class="col-span-full text-center py-20">Memuat...</p>';
 const res=await fetch(`${API}/discover/movie?api_key=${KEY}&with_genres=16&sort_by=popularity.desc`);
 const data=await res.json();
-render(data.results);
+renderMovies(data.results);
 }
 
-async function search(){
+/* SEARCH FIXED */
+async function searchMovies(){
 const q=searchInput.value.trim();
-if(!q) return load();
-const res=await fetch(`${API}/search/multi?api_key=${KEY}&query=${encodeURIComponent(q)}`);
+if(!q) return loadMovies();
+
+movieGrid.innerHTML='<p class="col-span-full text-center py-20">Mencari...</p>';
+
+const res=await fetch(`${API}/search/movie?api_key=${KEY}&query=${encodeURIComponent(q)}`);
 const data=await res.json();
-render(data.results.filter(i=>i.genre_ids?.includes(16)));
+
+renderMovies(data.results.filter(m=>m.genre_ids && m.genre_ids.includes(16)));
 }
 
-function badge(item){
-if(item.media_type==='tv') return 'TV';
-if(item.runtime && item.runtime<=45) return 'SHORT';
+/* BADGE SAFE */
+function getBadge(m){
+if(m.first_air_date) return 'TV';
+if(m.release_date && m.release_date<'1990-01-01') return 'SHORT';
 return 'MOVIE';
 }
 
-function render(list){
+/* RENDER GRID */
+function renderMovies(list){
 movieGrid.innerHTML='';
+if(!list||!list.length){
+movieGrid.innerHTML='<p class="col-span-full text-center text-gray-500">Tidak ditemukan</p>';
+return;
+}
+
 list.forEach(m=>{
 if(!m.poster_path) return;
+
 movieGrid.innerHTML+=`
-<div class="movie-card" onclick="detail(${m.id})">
+<div class="movie-card" onclick="showDetail(${m.id})">
 <div class="relative">
-<img src="${IMG+m.poster_path}" class="w-full aspect-[2/3] object-cover">
-<span class="badge bg-blue-600">${badge(m)}</span>
+<img loading="lazy" src="${IMG+m.poster_path}" class="w-full aspect-[2/3] object-cover">
+<span class="badge bg-blue-600">${getBadge(m)}</span>
 </div>
-<p class="text-[10px] p-2 truncate font-bold">${m.title||m.name}</p>
+<p class="text-[10px] p-2 truncate font-bold">${m.title}</p>
 </div>`;
 });
 }
 
-async function detail(id){
+/* DETAIL */
+async function showDetail(id){
 const res=await fetch(`${API}/movie/${id}?api_key=${KEY}&append_to_response=videos,credits`);
 const m=await res.json();
 
-const trailer=m.videos.results.find(v=>v.type==='Trailer'&&v.official);
-const isShort=m.runtime&&m.runtime<=45;
+const isShort=m.runtime && m.runtime<=45;
+const trailer=m.videos.results.find(v=>v.type==='Trailer'&&v.official&&v.site==='YouTube');
 
 modalContent.innerHTML=`
 <img src="${IMG+m.poster_path}" class="md:w-1/3 object-cover">
 <div class="p-6 md:w-2/3">
 <h2 class="text-xl font-black text-blue-500 italic">${m.title}</h2>
-<p class="text-[10px] text-gray-400 mb-3">${m.release_date} • ${m.runtime||'?'} menit</p>
+<p class="text-[10px] text-gray-400 mb-3">${m.release_date||''} • ${m.runtime||'?'} menit</p>
+<p class="text-[11px] mb-4">${m.overview||'Deskripsi tidak tersedia.'}</p>
 
-${trailer && !isShort ? `
+${trailer?`
 <iframe class="w-full aspect-video mb-4"
-src="https://www.youtube.com/embed/${trailer.key}"
-allowfullscreen></iframe>`:''}
+src="https://www.youtube.com/embed/${trailer.key}${isShort?'?autoplay=1':''}"
+allow="autoplay" allowfullscreen></iframe>`:''}
 
-${isShort && trailer ? `
-<iframe class="w-full aspect-video mb-4"
-src="https://www.youtube.com/embed/${trailer.key}?autoplay=1"
-allow="autoplay" allowfullscreen></iframe>
-<p class="text-green-400 text-[10px] font-bold italic">SHORT FILM diputar langsung</p>
-`:''}
-
-<div class="flex gap-3 overflow-x-auto mb-4">
+<div class="flex gap-3 overflow-x-auto scrollbar-hide mb-4">
 ${m.credits.cast.slice(0,8).map(c=>`
-<div onclick="cast(${c.id})" class="text-center cursor-pointer">
+<div onclick="loadCast(${c.id})" class="text-center cursor-pointer">
 <img src="${c.profile_path?IMG+c.profile_path:'https://via.placeholder.com/100'}" class="cast-img mx-auto mb-1">
 <p class="text-[8px] w-16 truncate">${c.name}</p>
 </div>`).join('')}
@@ -113,28 +127,33 @@ ${m.credits.cast.slice(0,8).map(c=>`
 
 ${!isShort?`
 <a href="https://vidsrc.to/embed/movie/${m.id}" target="_blank"
-class="block bg-blue-600 py-3 text-center rounded font-black text-xs mb-2">
-STREAMING</a>`:''}
+class="block bg-blue-600 py-3 text-center rounded font-black text-xs">
+STREAMING</a>`:`
+<p class="text-green-400 text-[10px] font-bold italic">
+▶ SHORT FILM diputar dari video resmi
+</p>`}
 
 </div>`;
-modal.style.display='flex';
+
+movieModal.style.display='flex';
 document.body.style.overflow='hidden';
 }
 
-async function cast(id){
+/* CAST CLICK */
+async function loadCast(id){
 closeModal();
-movieGrid.innerHTML='Memuat film pemeran...';
+movieGrid.innerHTML='<p class="col-span-full text-center py-20">Memuat film pemeran...</p>';
 const res=await fetch(`${API}/person/${id}/movie_credits?api_key=${KEY}`);
 const data=await res.json();
-render(data.cast.filter(m=>m.genre_ids?.includes(16)));
+renderMovies(data.cast.filter(m=>m.genre_ids && m.genre_ids.includes(16)));
 }
 
 function closeModal(){
-modal.style.display='none';
+movieModal.style.display='none';
 document.body.style.overflow='auto';
 }
 
-load();
+loadMovies();
 </script>
 
 </body>
