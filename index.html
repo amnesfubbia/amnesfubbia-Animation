@@ -10,31 +10,24 @@
     <style>
         body { background-color: #000; color: #fff; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
         .fixed-header-section { position: fixed; top: 0; width: 100%; z-index: 100; background: #000; border-bottom: 1px solid #1c1c1c; padding-bottom: 10px; }
         .ig-header { padding: 12px 15px 5px 15px; }
         .ig-logo { font-family: 'DM Sans', sans-serif; font-weight: 700; font-style: italic; font-size: 24px; letter-spacing: -0.8px; text-transform: lowercase; cursor: pointer; }
-        
         .search-container { background: #0a0a0a; border-radius: 8px; display: flex; align-items: center; padding: 7px 12px; border: 1px solid #1c1c1c; margin: 0 15px 10px 15px; }
         .search-container input { background: transparent !important; border: none !important; color: white !important; font-size: 13px; width: 100%; outline: none !important; margin-left: 8px; }
-        
         .category-wrapper { padding: 0 15px; }
         .pill-grid { display: grid; gap: 6px; margin-bottom: 8px; }
         .pill { background: transparent; border: 1px solid #1c1c1c; color: #fff; padding: 7px 0; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: center; cursor: pointer; }
         .pill.active { border-color: #fff; background: rgba(255,255,255,0.1); }
-        
         .movie-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; padding-top: 255px; padding-bottom: 80px; }
         .post-card { position: relative; aspect-ratio: 2/3; background: #0a0a0a; overflow: hidden; }
         .post-card img { width: 100%; height: 100%; object-fit: cover; }
         .badge-rating { position: absolute; top: 6px; left: 6px; padding: 2px 5px; border-radius: 2px; font-size: 7px; font-weight: 900; z-index: 5; background: rgba(255,255,255,0.9); color: #000; }
-        
-        .filter-dropdown { display: none; position: fixed; background: #121212; border: 1px solid #1c1c1c; border-radius: 12px; z-index: 200; width: 140px; max-height: 250px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,1); }
+        .filter-dropdown { display: none; position: fixed; background: #121212; border: 1px solid #1c1c1c; border-radius: 12px; z-index: 200; width: 160px; max-height: 350px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,1); }
         .filter-item { padding: 12px; font-size: 11px; text-align: center; border-bottom: 1px solid #1c1c1c; color: #bbb; cursor: pointer; }
-        
         .modal-player { display: none; position: fixed; inset: 0; z-index: 400; background: #000; overflow-y: auto; }
         .interaction-icon { font-size: 24px; cursor: pointer; color: #fff; }
         .server-btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; border: 1px solid #1c1c1c; text-align: center; cursor: pointer; }
-
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #000; border-top: 1px solid #1c1c1c; display: flex; justify-content: space-around; padding: 12px 0; z-index: 300; }
     </style>
 </head>
@@ -79,18 +72,36 @@
         </div>
     </div>
 
-    <div id="countryDropdown" class="filter-dropdown left-[15px] top-[245px]">
+    <div id="countryDropdown" class="filter-dropdown left-[15px] top-[245px] no-scrollbar">
         <div class="filter-item" onclick="setCountry('US', 'USA')">USA</div>
-        <div class="filter-item" onclick="setCountry('ID', 'Indo')">Indonesia</div>
-        <div class="filter-item" onclick="setCountry('KR', 'Korea')">Korea</div>
+        <div class="filter-item" onclick="setCountry('ID', 'Indonesia')">Indonesia</div>
         <div class="filter-item" onclick="setCountry('JP', 'Jepang')">Jepang</div>
+        <div class="filter-item" onclick="setCountry('KR', 'Korea')">Korea</div>
+        <div class="filter-item" onclick="setCountry('CN', 'China')">China</div>
+        <div class="filter-item" onclick="setCountry('TH', 'Thailand')">Thailand</div>
+        <div class="filter-item" onclick="setCountry('GB', 'Inggris')">Inggris</div>
+        <div class="filter-item" onclick="setCountry('FR', 'Prancis')">Prancis</div>
+        <div class="filter-item" onclick="setCountry('IN', 'India')">India</div>
     </div>
-    <div id="genreDropdown" class="filter-dropdown left-[35%] top-[245px]">
-        <div class="filter-item" onclick="setGenre('28', 'Aksi')">Aksi</div>
-        <div class="filter-item" onclick="setGenre('27', 'Horor')">Horor</div>
-        <div class="filter-item" onclick="setGenre('35', 'Komedi')">Komedi</div>
-        <div class="filter-item" onclick="setGenre('10749', 'Romantis')">Romantis</div>
+
+    <div id="genreDropdown" class="filter-dropdown left-[35%] top-[245px] no-scrollbar">
+        <div class="filter-item" onclick="setGenre('28', 'Action')">Action</div>
+        <div class="filter-item" onclick="setGenre('12', 'Adventure')">Adventure</div>
+        <div class="filter-item" onclick="setGenre('16', 'Animation')">Animation</div>
+        <div class="filter-item" onclick="setGenre('35', 'Comedy')">Comedy</div>
+        <div class="filter-item" onclick="setGenre('80', 'Crime')">Crime</div>
+        <div class="filter-item" onclick="setGenre('99', 'Documentary')">Documentary</div>
+        <div class="filter-item" onclick="setGenre('18', 'Drama')">Drama</div>
+        <div class="filter-item" onclick="setGenre('10751', 'Family')">Family</div>
+        <div class="filter-item" onclick="setGenre('14', 'Fantasy')">Fantasy</div>
+        <div class="filter-item" onclick="setGenre('27', 'Horror')">Horror</div>
+        <div class="filter-item" onclick="setGenre('10402', 'Music')">Music</div>
+        <div class="filter-item" onclick="setGenre('9648', 'Mystery')">Mystery</div>
+        <div class="filter-item" onclick="setGenre('10749', 'Romance')">Romance</div>
+        <div class="filter-item" onclick="setGenre('878', 'Sci-Fi')">Sci-Fi</div>
+        <div class="filter-item" onclick="setGenre('53', 'Thriller')">Thriller</div>
     </div>
+
     <div id="yearDropdown" class="filter-dropdown right-[15px] top-[245px] no-scrollbar"></div>
 
     <main id="feedGrid" class="movie-grid"></main>
@@ -107,7 +118,10 @@
                 <i class="fa-solid fa-chevron-left text-xl cursor-pointer" onclick="closeModal()"></i>
                 <div class="flex-grow text-center text-sm font-bold truncate px-8" id="mTitle"></div>
             </div>
-            <div class="aspect-video bg-zinc-900 w-full">
+            <div class="aspect-video bg-zinc-900 w-full relative">
+                <div id="videoPlaceholder" class="absolute inset-0 flex items-center justify-center bg-zinc-900 hidden">
+                    <p class="text-xs text-zinc-500">Video tidak tersedia di server utama</p>
+                </div>
                 <iframe id="videoPlayer" class="w-full h-full" allow="autoplay; fullscreen" allowfullscreen></iframe>
             </div>
             <div class="px-4 py-4 flex justify-between">
@@ -124,7 +138,7 @@
                     <div id="episodeGrid" class="grid grid-cols-5 gap-2"></div>
                 </div>
                 <div id="serverList" class="grid grid-cols-2 gap-2 mt-6"></div>
-                <button id="btnDownloadMain" class="server-btn border-zinc-800 text-zinc-500 mt-4">Download Konten</button>
+                <button id="btnDownloadMain" class="server-btn border-zinc-800 text-zinc-400 mt-4">Download Konten</button>
             </div>
         </div>
     </div>
@@ -137,14 +151,13 @@
 
         function initYears() {
             const d = document.getElementById('yearDropdown');
-            let h = ''; for(let y=2026; y>=1990; y--) h += `<div class="filter-item" onclick="setYear(${y})">${y}</div>`;
+            let h = ''; for(let y=2026; y>=1900; y--) h += `<div class="filter-item" onclick="setYear(${y})">${y}</div>`;
             d.innerHTML = h;
         }
 
         async function loadFeed(isNew = true) {
             if(loading) return; loading = true;
             if(isNew) { page = 1; document.getElementById('feedGrid').innerHTML = ''; }
-            
             const params = `api_key=${API_KEY}&language=id-ID&page=${page}&include_adult=false`;
             let url = searchQuery ? `https://api.themoviedb.org/3/search/multi?query=${searchQuery}&${params}` : 
                       (currentSchedule !== 'trending' ? `https://api.themoviedb.org/3/movie/${currentSchedule}?${params}` : 
@@ -154,7 +167,7 @@
                 if(currentType === 'short') url += `&with_runtime.lte=40&without_genres=16`;
                 if(currentType === 'anime') url += `&with_genres=16&with_keywords=210024&with_original_language=ja`;
                 if(currentGenre) url += `&with_genres=${currentGenre}`;
-                if(currentYear) url += `&primary_release_year=${currentYear}`;
+                if(currentYear) url += (currentType==='tv'||currentType==='anime'?`&first_air_date_year=${currentYear}`:`&primary_release_year=${currentYear}`);
                 if(currentCountry) url += `&with_origin_country=${currentCountry}`;
             }
 
@@ -189,15 +202,21 @@
             ]);
             const dId = await rId.json(), dEn = await rEn.json();
             document.getElementById('mTitle').innerText = dId.title || dId.name;
-            document.getElementById('mDesc').innerText = dId.overview || dEn.overview || "Sinopsis segera hadir.";
+            document.getElementById('mDesc').innerText = dId.overview || dEn.overview || "Sinopsis tidak tersedia.";
             
             const vids = [...(dId.videos?.results || []), ...(dEn.videos?.results || [])];
-            const tr = vids.find(v => v.type === 'Trailer');
-            document.getElementById('videoPlayer').src = tr ? `https://www.youtube.com/embed/${tr.key}?autoplay=1&rel=0` : (type==='movie'?`https://vidrock.net/embed/movie/${id}`:`https://vidrock.net/embed/tv/${id}/1/1`);
+            const tr = vids.find(v => v.type === 'Trailer' || v.type === 'Teaser');
+            
+            if(tr) {
+                document.getElementById('videoPlayer').src = `https://www.youtube.com/embed/${tr.key}?autoplay=1&rel=0`;
+            } else {
+                // Jika trailer TMDB zonk, langsung tembak ke server streaming
+                document.getElementById('videoPlayer').src = type === 'movie' ? `https://vidrock.net/embed/movie/${id}` : `https://vidrock.net/embed/tv/${id}/1/1`;
+            }
 
             if(type === 'movie') {
                 document.getElementById('seriesControl').classList.add('hidden');
-                document.getElementById('serverList').innerHTML = `<button class="server-btn bg-white text-black" onclick="document.getElementById('videoPlayer').src='https://vidrock.net/embed/movie/${id}'">Streaming Server</button>`;
+                document.getElementById('serverList').innerHTML = `<button class="server-btn bg-white text-black" onclick="document.getElementById('videoPlayer').src='https://vidrock.net/embed/movie/${id}'">Server Utama</button>`;
                 document.getElementById('btnDownloadMain').onclick = () => window.open(`https://dl.vidsrc.vip/movie/${id}`);
             } else {
                 document.getElementById('seriesControl').classList.remove('hidden');
@@ -217,20 +236,10 @@
 
         function playEp(s, e) { document.getElementById('videoPlayer').src = `https://vidrock.net/embed/tv/${window.currentMediaId}/${s}/${e}`; }
         function closeModal() { document.getElementById('movieModal').style.display = 'none'; document.getElementById('videoPlayer').src = ''; document.body.style.overflow = 'auto'; }
-        
-        function setFilter(t, v, el) { 
-            resetIcons(); updatePill(el); currentType=v; 
-            if(v==='anime') currentGenre=''; 
-            loadFeed(true); 
-        }
+        function setFilter(t, v, el) { resetIcons(); updatePill(el); currentType=v; loadFeed(true); }
         function setSchedule(v, el) { resetIcons(); updatePill(el); currentSchedule=v; loadFeed(true); }
         function updatePill(el) { el.parentElement.querySelectorAll('.pill').forEach(p=>p.classList.remove('active')); el.classList.add('active'); }
-        function toggleFilter(id) { 
-            const d = document.getElementById(id);
-            const isVis = d.style.display === 'block';
-            document.querySelectorAll('.filter-dropdown').forEach(x=>x.style.display='none');
-            d.style.display = isVis ? 'none' : 'block';
-        }
+        function toggleFilter(id) { document.querySelectorAll('.filter-dropdown').forEach(x=>x.style.display='none'); document.getElementById(id).style.display='block'; }
         function setYear(y) { currentYear=y; document.getElementById('yearBtn').innerText=y; closeD(); loadFeed(true); }
         function setCountry(c, n) { currentCountry=c; document.getElementById('btnCountry').innerText=n; closeD(); loadFeed(true); }
         function setGenre(g, n) { currentGenre=g; document.getElementById('btnGenre').innerText=n; closeD(); loadFeed(true); }
@@ -259,8 +268,7 @@
             resetIcons();
             el.classList.replace('fa-regular', 'fa-solid');
             if(k==='likes') el.classList.add('text-red-500');
-            
-            grid.innerHTML = items.length ? '' : '<div class="col-span-3 text-center py-20 opacity-40">Belum ada koleksi</div>';
+            grid.innerHTML = items.length ? '' : '<div class="col-span-3 text-center py-20 opacity-40">Daftar Kosong</div>';
             for (const item of items) {
                 const res = await fetch(`https://api.themoviedb.org/3/${item.type}/${item.id}?api_key=${API_KEY}&language=id-ID`);
                 const m = await res.json();
@@ -269,9 +277,8 @@
         }
 
         function resetIcons() {
-            const l = document.getElementById('navLike'), b = document.getElementById('navBook');
-            l.className = 'fa-regular fa-heart text-xl cursor-pointer';
-            b.className = 'fa-regular fa-bookmark text-xl cursor-pointer';
+            document.getElementById('navLike').className = 'fa-regular fa-heart text-xl cursor-pointer';
+            document.getElementById('navBook').className = 'fa-regular fa-bookmark text-xl cursor-pointer';
         }
 
         window.onscroll = () => { if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000 && !loading) { page++; loadFeed(false); } };
