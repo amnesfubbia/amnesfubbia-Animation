@@ -108,8 +108,8 @@
         .interaction-icon { font-size: 24px; cursor: pointer; color: #fff; }
         .server-btn { width: 100%; padding: 12px 5px; border-radius: 8px; font-size: 8px; font-weight: 800; text-transform: uppercase; border: 1px solid #1c1c1c; text-align: center; cursor: pointer; background: #0a0a0a; color: #fff; }
         .server-btn.active-link { border: 2px solid #fff !important; }
-        .dl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 15px; }
-        .dl-link-btn { width: 100%; padding: 14px; border-radius: 12px; background: #000; color: #a1a1aa; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: center; border: 1px solid #1c1c1c; }
+        .dl-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 15px; }
+        .dl-link-btn { width: 100%; padding: 14px; border-radius: 12px; background: #000; color: #fff; font-size: 12px; font-weight: 800; text-transform: uppercase; text-align: center; border: 1px solid #333; cursor: pointer; }
         
         .cast-wrapper { display: flex; overflow-x: auto; gap: 15px; padding: 15px 0; scrollbar-width: none; }
         .cast-item { flex: 0 0 65px; text-align: center; cursor: pointer; }
@@ -146,21 +146,33 @@
 
         /* --- LANDSCAPE CONTROLS --- */
         .landscape-overlay {
-            display: none; position: fixed; inset: 0; z-index: 9000; background: #000;
+            display: none; position: fixed; inset: 0; z-index: 9500; background: #000;
         }
         .landscape-video-container { width: 100%; height: 100%; position: relative; }
-        .landscape-video-container iframe { width: 100%; height: 100%; border: 0; }
         
         .ls-controls {
             position: absolute; inset: 0; background: rgba(0,0,0,0.3);
             display: flex; flex-direction: column; justify-content: space-between;
-            padding: 20px; opacity: 0; transition: opacity 0.3s; z-index: 10;
+            padding: 20px; opacity: 0; transition: opacity 0.3s; z-index: 10000;
         }
         .ls-controls:hover, .ls-controls:active { opacity: 1; }
         .ls-top { display: flex; justify-content: space-between; align-items: center; }
         .ls-center { display: flex; justify-content: center; align-items: center; gap: 40px; }
-        .ls-btn { color: #fff; font-size: 24px; cursor: pointer; text-shadow: 0 0 10px rgba(0,0,0,0.8); }
-        .ls-lock-screen { position: absolute; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; }
+        .ls-btn { color: #fff; font-size: 28px; cursor: pointer; text-shadow: 0 0 10px rgba(0,0,0,0.8); }
+        .ls-lock-screen { position: absolute; inset: 0; z-index: 11000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); }
+        
+        /* Fixed Landscape Sizing */
+        .landscape-active #movieModal { overflow: hidden !important; }
+        .landscape-active .modal-player { display: block !important; position: fixed; inset: 0; z-index: 9999; }
+        .landscape-active #modalScrollTop { height: 100vh; max-width: 100%; padding: 0; }
+        .landscape-active .carousel-slide { height: 100vh; }
+        .landscape-active .ig-post-content, 
+        .landscape-active .cast-wrapper,
+        .landscape-active #carouselDots,
+        .landscape-active .px-4,
+        .landscape-active #seriesControl,
+        .landscape-active #serverList,
+        .landscape-active .dl-grid { display: none !important; }
     </style>
 </head>
 <body>
@@ -177,23 +189,21 @@
     </div>
 
     <div id="landscapeOverlay" class="landscape-overlay">
-        <div class="landscape-video-container" id="lsVideoBox">
-            <div id="lsLockLayer" class="ls-lock-screen" onclick="unlockScreen()">
-                <i class="fa-solid fa-lock text-4xl text-white opacity-50"></i>
+        <div id="lsLockLayer" class="ls-lock-screen" onclick="unlockScreen()">
+            <i class="fa-solid fa-lock text-5xl text-white opacity-40"></i>
+        </div>
+        <div class="ls-controls" id="lsUI">
+            <div class="ls-top">
+                <i class="fa-solid fa-arrow-left ls-btn" onclick="exitLandscape()"></i>
+                <div id="lsTitle" class="text-white font-bold truncate max-w-[60%]"></div>
+                <i class="fa-solid fa-lock-open ls-btn" onclick="lockScreen()"></i>
             </div>
-            <div class="ls-controls" id="lsUI">
-                <div class="ls-top">
-                    <i class="fa-solid fa-arrow-left ls-btn" onclick="exitLandscape()"></i>
-                    <div id="lsTitle" class="text-white font-bold truncate max-w-[60%]"></div>
-                    <i class="fa-solid fa-lock-open ls-btn" onclick="lockScreen()"></i>
-                </div>
-                <div class="ls-center">
-                    <i id="lsMute" class="fa-solid fa-volume-high ls-btn" onclick="toggleLsMute()"></i>
-                    <i id="lsPlay" class="fa-solid fa-pause ls-btn text-5xl" onclick="toggleLsPlay()"></i>
-                    <i class="fa-solid fa-rotate ls-btn" onclick="exitLandscape()"></i>
-                </div>
-                <div class="ls-bottom"></div>
+            <div class="ls-center">
+                <i id="lsMute" class="fa-solid fa-volume-high ls-btn" onclick="toggleLsMute()"></i>
+                <i id="lsPlay" class="fa-solid fa-pause ls-btn text-6xl" onclick="toggleLsPlay()"></i>
+                <i class="fa-solid fa-expand ls-btn" onclick="exitLandscape()"></i>
             </div>
+            <div class="ls-bottom"></div>
         </div>
     </div>
 
@@ -304,7 +314,7 @@
                 <div class="flex-grow text-center text-[14px] font-bold truncate px-8" id="mTitle"></div>
             </div>
             <div id="castContainer" class="cast-wrapper px-4 no-scrollbar"></div>
-            <div class="relative overflow-hidden">
+            <div class="relative overflow-hidden" id="mainVideoArea">
                 <div class="swipe-overlay" id="swipeOverlay"></div>
                 <div class="carousel-track" id="carouselTrack"></div>
                 <div id="carouselDots" class="flex justify-center gap-2 py-3"></div>
@@ -339,8 +349,7 @@
                 </div>
                 <div id="serverList" class="grid grid-cols-4 gap-2 mt-6"></div>
                 <div class="dl-grid">
-                    <button id="btnDownload1" class="dl-link-btn" onclick="highlightBtn(this); window.open(`https://dl.vidsrc.vip/${window.currentMediaType}/${window.currentMediaId}`)">Download 1</button>
-                    <button id="btnDownload2" class="dl-link-btn" onclick="highlightBtn(this); window.open(`https://multiembed.mov/directstream.php?video_id=${window.currentMediaId}&tmdb=1`)">Download 2</button>
+                    <button id="btnDownload1" class="dl-link-btn" onclick="window.open(`https://dl.vidsrc.vip/${window.currentMediaType}/${window.currentMediaId}`)">Download Sekarang</button>
                 </div>
             </div>
         </div>
@@ -371,23 +380,15 @@
             }); 
         };
 
-        /* --- LANDSCAPE FUNCTIONS --- */
+        /* --- IMPROVED LANDSCAPE FUNCTIONS --- */
         async function enterLandscape() {
-            const currentIframe = document.querySelector('#carouselTrack .carousel-slide iframe');
-            if(!currentIframe) return;
-            
+            const container = document.getElementById('mainVideoArea');
             const overlay = document.getElementById('landscapeOverlay');
-            const lsVideoBox = document.getElementById('lsVideoBox');
             const lsTitle = document.getElementById('lsTitle');
             
             lsTitle.innerText = document.getElementById('mTitle').innerText;
+            document.body.classList.add('landscape-active');
             overlay.style.display = 'block';
-            
-            const newIframe = currentIframe.cloneNode(true);
-            newIframe.id = "lsIframe";
-            const existing = document.getElementById('lsIframe');
-            if(existing) existing.remove();
-            lsVideoBox.prepend(newIframe);
 
             try {
                 if (document.documentElement.requestFullscreen) {
@@ -396,13 +397,12 @@
                         await screen.orientation.lock('landscape');
                     }
                 }
-            } catch (e) { console.log("Orientation lock not supported/allowed"); }
+            } catch (e) { console.log("Orientation lock limited"); }
         }
 
         function exitLandscape() {
+            document.body.classList.remove('landscape-active');
             document.getElementById('landscapeOverlay').style.display = 'none';
-            const lsIframe = document.getElementById('lsIframe');
-            if(lsIframe) lsIframe.remove();
             
             if (document.exitFullscreen && document.fullscreenElement) {
                 document.exitFullscreen();
@@ -413,20 +413,28 @@
         }
 
         function toggleLsPlay() {
-            const iframe = document.getElementById('lsIframe');
+            // Get current active iframe in carousel
+            const iframes = document.querySelectorAll('#carouselTrack iframe');
+            const currentIframe = iframes[currentIdx];
             const btn = document.getElementById('lsPlay');
+            
             isLsPaused = !isLsPaused;
             const cmd = isLsPaused ? 'pauseVideo' : 'playVideo';
-            iframe.contentWindow.postMessage(JSON.stringify({"event":"command","func":cmd,"args":""}), '*');
-            btn.className = isLsPaused ? 'fa-solid fa-play ls-btn text-5xl' : 'fa-solid fa-pause ls-btn text-5xl';
+            
+            // Post message to YouTube API
+            currentIframe.contentWindow.postMessage(JSON.stringify({"event":"command","func":cmd,"args":""}), '*');
+            btn.className = isLsPaused ? 'fa-solid fa-play ls-btn text-6xl' : 'fa-solid fa-pause ls-btn text-6xl';
         }
 
         function toggleLsMute() {
-            const iframe = document.getElementById('lsIframe');
+            const iframes = document.querySelectorAll('#carouselTrack iframe');
+            const currentIframe = iframes[currentIdx];
             const btn = document.getElementById('lsMute');
+            
             isLsMuted = !isLsMuted;
             const cmd = isLsMuted ? 'mute' : 'unMute';
-            iframe.contentWindow.postMessage(JSON.stringify({"event":"command","func":cmd,"args":""}), '*');
+            
+            currentIframe.contentWindow.postMessage(JSON.stringify({"event":"command","func":cmd,"args":""}), '*');
             btn.className = isLsMuted ? 'fa-solid fa-volume-xmark ls-btn' : 'fa-solid fa-volume-high ls-btn';
         }
 
@@ -440,6 +448,7 @@
             document.getElementById('lsLockLayer').style.display = 'none';
         }
 
+        /* --- REST OF FUNCTIONS --- */
         function updateActiveNav(el) { document.querySelectorAll('.bottom-nav i').forEach(i => i.classList.remove('active-nav')); el.classList.add('active-nav'); }
 
         function toggleSideMenu() {
@@ -740,7 +749,6 @@
             const vids = [...(dId.videos?.results || []), ...(dEn.videos?.results || [])].filter(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')).slice(0, 4);
             const track = document.getElementById('carouselTrack'), dots = document.getElementById('carouselDots');
             
-            track.querySelectorAll('iframe').forEach(f => f.src = "");
             track.innerHTML = ''; dots.innerHTML = ''; track.style.transform = 'translateX(0)';
             
             if(vids.length > 0) { 
@@ -779,16 +787,14 @@
             document.getElementById('serverList').innerHTML = `
                 <button class="server-btn" onclick="playVid('https://vidsrc.me/embed/${type}?tmdb=${id}', this)">S1 VidSrc Me</button>
                 <button class="server-btn" onclick="playVid('https://vidrock.net/embed/${type}/${id}${seriesSuffix}', this)">S2 VidRock</button>
-                <button class="server-btn" onclick="playVid('https://vidlink.pro/embed/${type}/${id}${seriesSuffix}', this)">S3 Vidlink</button>
-                <button class="server-btn" onclick="playVid('https://vidnest.fun/embed/${type}/${id}${seriesSuffix}', this)">S4 Vidnest</button>
-                <button class="server-btn" onclick="playVid('https://vidsrc.icu/embed/${type}/${id}${seriesSuffix}', this)">S5 vidsrc icu</button>
-                <button class="server-btn" onclick="playVid('https://vidsrc.to/embed/${type}/${id}${seriesSuffix}', this)">S6 vidsrc to</button>
-                <button class="server-btn" onclick="playVid('https://www.2embed.cc/embed/${id}', this)">S7 2embed</button>
-                <button class="server-btn" onclick="playVid('https://vidfast.pro/embed/${type}/${id}${seriesSuffix}', this)">S8 vidfast</button>
-                <button class="server-btn" onclick="playVid('https://embed.smashystream.com/playere.php?tmdb=${id}', this)">S9 Smashy</button>
-                <button class="server-btn" onclick="playVid('https://vidsrc.xyz/embed/${type}/${id}${seriesSuffix}', this)">S10 xyz</button>
-                <button class="server-btn" onclick="playVid('https://vidstorm.ru/${type}/${id}${seriesSuffix}', this)">S11 vidstorm</button>
-                <button class="server-btn" onclick="playVid('https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1', this)">S12 Multi</button>
+                <button class="server-btn" onclick="playVid('https://vidsrc.icu/embed/${type}/${id}${seriesSuffix}', this)">S3 vidsrc icu</button>
+                <button class="server-btn" onclick="playVid('https://vidsrc.to/embed/${type}/${id}${seriesSuffix}', this)">S4 vidsrc to</button>
+                <button class="server-btn" onclick="playVid('https://www.2embed.cc/embed/${id}', this)">S5 2embed</button>
+                <button class="server-btn" onclick="playVid('https://vidfast.pro/embed/${type}/${id}${seriesSuffix}', this)">S6 vidfast</button>
+                <button class="server-btn" onclick="playVid('https://embed.smashystream.com/playere.php?tmdb=${id}', this)">S7 Smashy</button>
+                <button class="server-btn" onclick="playVid('https://vidsrc.xyz/embed/${type}/${id}${seriesSuffix}', this)">S8 xyz</button>
+                <button class="server-btn" onclick="playVid('https://vidstorm.ru/${type}/${id}${seriesSuffix}', this)">S9 vidstorm</button>
+                <button class="server-btn" onclick="playVid('https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1', this)">S10 Multi</button>
             `;
 
             if(type === 'tv') { document.getElementById('seriesControl').classList.remove('hidden'); document.getElementById('seasonSel').innerHTML = (dId.seasons||[]).filter(s=>s.season_number>0).map(s=>`<option value="${s.season_number}">Season ${s.season_number}</option>`).join(''); loadEpisodes(); } else { document.getElementById('seriesControl').classList.add('hidden'); }
@@ -819,8 +825,10 @@
         function playVid(url, el) { 
             const track = document.getElementById('carouselTrack'); 
             const dots = document.getElementById('carouselDots'); 
+            const finalUrl = url.includes('?') ? `${url}&enablejsapi=1` : `${url}?enablejsapi=1`;
+            
             track.querySelectorAll('iframe').forEach(f => f.src = "");
-            track.innerHTML = `<div class="carousel-slide"><iframe src="${url}" class="w-full h-full" allowfullscreen></iframe></div>`; 
+            track.innerHTML = `<div class="carousel-slide"><iframe src="${finalUrl}" class="w-full h-full" allowfullscreen allow="autoplay"></iframe></div>`; 
             track.style.transform = 'translateX(0)'; currentIdx = 0; dots.innerHTML = ''; 
             document.getElementById('swipeOverlay').style.display = 'none'; highlightBtn(el); 
         }
