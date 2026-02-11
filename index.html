@@ -692,8 +692,8 @@
                 if(currentCompany) url += `&with_companies=${currentCompany}`;
                 
                 if(currentType === 'short') {
-                    // Filter Film Pendek yang lebih akurat (Durasi 1-45 menit + Status Released)
-                    url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=id-ID&page=${page}&with_runtime.lte=45&with_runtime.gte=1&status=Released&sort_by=popularity.desc`;
+                    // Perbaikan: Mencari film dengan durasi 1 - 40 menit secara eksplisit
+                    url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=id-ID&page=${page}&with_runtime.lte=40&with_runtime.gte=1&sort_by=popularity.desc`;
                     if(currentCountry) url += `&with_origin_country=${currentCountry}`;
                     if(currentGenre) url += `&with_genres=${currentGenre}`;
                 }
