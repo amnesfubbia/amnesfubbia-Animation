@@ -430,7 +430,7 @@
                 <div id="serverList" class="server-scroll-wrapper mt-4 px-4"></div>
                 
                 <div class="dl-grid">
-                    <button id="btnDownload1" class="dl-link-btn" onclick="window.open(`https://dl.vidsrc.vip/${window.currentMediaType}/${window.currentMediaId}`)">Download</button>
+                    <button id="btnDownload1" class="dl-link-btn" onclick="window.open(`https://vidlink.pro/download/${window.currentMediaType}/${window.currentMediaId}`)">Download</button>
                 </div>
             </div>
         </div>
@@ -1190,11 +1190,21 @@
         }
         
         function highlightBtn(el) { document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active-link')); el.classList.add('active-link'); }
+        
+        // --- UPDATED loadEpisodes: Now using vidlink.pro as target ---
         async function loadEpisodes() { 
             const s = document.getElementById('seasonSel').value; 
             const data = await fetchWithCache(`https://api.themoviedb.org/3/tv/${window.currentMediaId}/season/${s}?api_key=${API_KEY}`); 
             const episodes = data.episodes || [];
-            document.getElementById('episodeGrid').innerHTML = episodes.map((e, index) => { const epNum = e.episode_number; return `<div class="pill text-[10px] flex flex-col items-center justify-center gap-1 min-h-[45px]" onclick="playVid('https://vidsrc.me/embed/tv?tmdb=${window.currentMediaId}&s=${s}&e=${epNum}', this)"><span class="font-bold">${epNum}</span></div>`; }).join(''); 
+            document.getElementById('episodeGrid').innerHTML = episodes.map((e) => { 
+                const epNum = e.episode_number; 
+                const targetUrl = `https://vidlink.pro/tv/${window.currentMediaId}/${s}/${epNum}`;
+                return `
+                    <div class="pill text-[10px] flex flex-col items-center justify-center gap-1 min-h-[45px]" 
+                         onclick="playVid('${targetUrl}', this)">
+                        <span class="font-bold">${epNum}</span>
+                    </div>`; 
+            }).join(''); 
         }
         
         function setupSwipe() { 
