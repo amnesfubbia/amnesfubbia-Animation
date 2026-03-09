@@ -1100,13 +1100,13 @@
             
             document.getElementById('serverList').innerHTML = `
                 <button class="server-btn" id="srv1" onclick="playVid('https://vidlink.pro/${type}/${id}${seriesSuffix}', this)">Server 1</button>
-                <button class="server-btn" onclick="playVid('https://vidrock.net/embed/${type}/${id}${seriesSuffix}', this)">Server 2</button>
-                <button class="server-btn" onclick="playVid('https://player.videasy.net/movie/${id}', this)">Server 3</button>
-                <button class="server-btn" onclick="playVid('https://111movies.com/movie/${id}', this)">Server 4</button>
-                <button class="server-btn" onclick="playVid('https://vidstorm.ru/embed/${type}/${id}', this)">Server 5</button>
-                <button class="server-btn" onclick="playVid('https://vidfast.pro/movie/${id}', this)">Server 6</button>
-                <button class="server-btn" onclick="playVid('https://www.nontongo.win/embed/${type}/${id}${seriesSuffix}', this)">Server 7</button>
-                <button class="server-btn" onclick="playVid('https://vidsrc.cc/v2/embed/${type}/${currentImdbId || id}', this)">Server 8</button>
+                <button class="server-btn" onclick="playVid('https://vidsrc.cc/v2/embed/${type}/${currentImdbId || id}', this)">Server 2</button>
+                <button class="server-btn" onclick="playVid('https://vidrock.net/embed/${type}/${id}${seriesSuffix}', this)">Server 3</button>
+                <button class="server-btn" onclick="playVid('https://vidstorm.ru/embed/${type}/${id}', this)">Server 4</button>
+                <button class="server-btn" onclick="playVid('https://111movies.com/movie/${id}', this)">Server 5</button>
+                <button class="server-btn" onclick="playVid('https://www.nontongo.win/embed/${type}/${id}${seriesSuffix}', this)">Server 6</button>
+                <button class="server-btn" onclick="playVid('https://player.videasy.net/movie/${id}', this)">Server 7</button>
+                <button class="server-btn" onclick="playVid('https://vidfast.pro/movie/${id}', this)">Server 8</button>
                 <button class="server-btn" onclick="playVid('https://moviesapi.club/${type}/${id}${seriesSuffix}', this)">Server 9</button>
                 <button class="server-btn" onclick="playVid('https://vidsrc.cc/v2/embed/${type}/${id}${type==='tv'?'?s=1&e=1':''}', this)">Server 10</button>
                 <button class="server-btn" onclick="playVid('https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1', this)">Server 11</button>
@@ -1191,7 +1191,7 @@
         
         function highlightBtn(el) { document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active-link')); el.classList.add('active-link'); }
         
-        // --- UPDATED loadEpisodes: Now using vidlink.pro as target ---
+        // --- UPDATED loadEpisodes: Ditambahkan indikator border putih pada tombol yang dipilih ---
         async function loadEpisodes() { 
             const s = document.getElementById('seasonSel').value; 
             const data = await fetchWithCache(`https://api.themoviedb.org/3/tv/${window.currentMediaId}/season/${s}?api_key=${API_KEY}`); 
@@ -1200,8 +1200,8 @@
                 const epNum = e.episode_number; 
                 const targetUrl = `https://vidlink.pro/tv/${window.currentMediaId}/${s}/${epNum}`;
                 return `
-                    <div class="pill text-[10px] flex flex-col items-center justify-center gap-1 min-h-[45px]" 
-                         onclick="playVid('${targetUrl}', this)">
+                    <div class="pill text-[10px] flex flex-col items-center justify-center gap-1 min-h-[45px] ep-btn" 
+                         onclick="playVid('${targetUrl}', this); document.querySelectorAll('.ep-btn').forEach(b=>b.classList.remove('active-pill')); this.classList.add('active-pill');">
                         <span class="font-bold">${epNum}</span>
                     </div>`; 
             }).join(''); 
