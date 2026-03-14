@@ -538,12 +538,10 @@
                     // 1. Berikan perintah pause lewat API YouTube
                     iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
                     
-                    // 2. Simpan SRC asli untuk pemulihan nanti jika diperlukan
-                    const currentSrc = iframe.src;
-                    
-                    // 3. Set SRC ke kosong atau paksa reload ke mode tanpa autoplay agar tidak jalan di background
-                    iframe.src = currentSrc.replace("autoplay=1", "autoplay=0");
-                    
+                    // 2. Ubah src agar autoplay mati, mengantisipasi refresh otomatis browser
+                    if (iframe.src.includes("autoplay=1")) {
+                        iframe.src = iframe.src.replace("autoplay=1", "autoplay=0");
+                    }
                 } catch(e) {
                     console.log("Gagal menghentikan trailer secara halus");
                 }
@@ -592,6 +590,11 @@
             // Stop semua audio soundtrack saat modal ditutup
             document.querySelectorAll('.audio-player-mini').forEach(a => a.pause());
             
+            // Replay trailer agar kembali bersuara saat modal soundtrack ditutup
+            if (document.getElementById('movieModal').style.display === 'block') {
+                replayTrailer();
+            }
+
             // Periksa jika movie modal masih terbuka, jangan kembalikan overflow ke auto
             if (document.getElementById('movieModal').style.display !== 'block') {
                 document.body.style.overflow = 'auto';
