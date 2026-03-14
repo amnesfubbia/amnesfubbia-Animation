@@ -532,16 +532,20 @@
 
         // --- SOUNDTRACK LOGIC ---
         async function openSoundtrack() {
-            // BERHENTIKAN TRAILER: Mencari semua iframe baik YouTube maupun server custom
+            // BERHENTIKAN TRAILER DENGAN BENAR
             document.querySelectorAll('#carouselTrack iframe').forEach(iframe => {
                 try {
-                    // Coba hentikan YouTube Player API
+                    // 1. Berikan perintah pause lewat API YouTube
                     iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-                    // Reload iframe untuk memastikan video benar-benar berhenti (terutama untuk server non-YouTube)
+                    
+                    // 2. Simpan SRC asli untuk pemulihan nanti jika diperlukan
                     const currentSrc = iframe.src;
-                    iframe.src = currentSrc;
+                    
+                    // 3. Set SRC ke kosong atau paksa reload ke mode tanpa autoplay agar tidak jalan di background
+                    iframe.src = currentSrc.replace("autoplay=1", "autoplay=0");
+                    
                 } catch(e) {
-                    console.log("Gagal menghentikan trailer secara halus, me-reload src...");
+                    console.log("Gagal menghentikan trailer secara halus");
                 }
             });
 
@@ -587,8 +591,12 @@
             document.getElementById('soundtrackModal').style.display = 'none';
             // Stop semua audio soundtrack saat modal ditutup
             document.querySelectorAll('.audio-player-mini').forEach(a => a.pause());
+            
+            // Periksa jika movie modal masih terbuka, jangan kembalikan overflow ke auto
             if (document.getElementById('movieModal').style.display !== 'block') {
                 document.body.style.overflow = 'auto';
+            } else {
+                document.getElementById('filterOverlay').style.display = 'none';
             }
         }
 
