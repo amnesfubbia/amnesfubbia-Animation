@@ -1997,14 +1997,16 @@
 
         function closeSoundtrack() {
             document.getElementById('soundtrackModal').style.display = 'none';
-            document.querySelectorAll('.audio-player-mini').forEach(a => a.pause());
-            if (document.getElementById('movieModal').style.display === 'block') {
-                replayTrailer();
-            }
+            document.querySelectorAll('.audio-player-mini').forEach(a => { a.pause(); a.currentTime = 0; });
+            document.getElementById('filterOverlay').style.display = 'none';
+            // Resume video yang sudah ada (tidak reload)
+            document.querySelectorAll('#carouselTrack iframe').forEach(iframe => {
+                try {
+                    iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                } catch(e) {}
+            });
             if (document.getElementById('movieModal').style.display !== 'block') {
                 document.body.style.overflow = 'auto';
-            } else {
-                document.getElementById('filterOverlay').style.display = 'none';
             }
         }
 
@@ -2390,7 +2392,10 @@
                         track.appendChild(slide);
                     }
                 });
-            } else { document.body.style.overflow = 'auto'; }
+                // body tetap hidden karena movieModal masih buka
+            } else {
+                document.body.style.overflow = 'auto';
+            }
         }
 
         function searchByStudio(studioId, studioName) {
@@ -2486,6 +2491,7 @@
         let calendarMediaType = 'movie';
 
         async function openComingSoon() {
+            calendarMediaType = 'movie'; // reset tiap buka
             const overlay = document.getElementById('searchOverlay');
             const calendarHeader = document.getElementById('calendarHeader');
             overlay.style.display = 'block';
@@ -2588,8 +2594,13 @@
         }
 
         function searchByCast(castId) { 
-            closeModal(); currentCastId = castId; searchQuery = ''; document.getElementById('searchInp').value = ''; 
-            document.getElementById('searchOverlay').style.display = 'block'; document.getElementById('smartSearchDropdown').style.display = 'none';
+            closeActorModal();
+            closeModal(); 
+            currentCastId = castId; searchQuery = ''; 
+            document.getElementById('searchInp').value = ''; 
+            document.getElementById('searchOverlay').style.display = 'block';
+            document.getElementById('smartSearchDropdown').style.display = 'none';
+            showSearchResults();
             document.body.style.overflow='hidden'; 
             history.pushState({view: 'search'}, "");
             loadFeed(true); 
@@ -2658,7 +2669,7 @@
             // Genre — lengkap, urut abjad (ID TMDb)
             const genres = [
                 [28,'Action'],[12,'Adventure'],[16,'Animasi'],
-                [36,'Biografi / Sejarah'],[35,'Komedi'],[80,'Crime'],
+                [35,'Komedi'],[80,'Crime'],
                 [99,'Dokumenter'],[18,'Drama'],[10751,'Family'],
                 [14,'Fantasy'],[36,'History'],[27,'Horror'],
                 [10402,'Musik'],[9648,'Misteri'],[10749,'Romance'],
@@ -2872,15 +2883,32 @@
             track.innerHTML = ''; dots.innerHTML = ''; track.style.transform = 'translateX(0)';
             currentIdx = 0;
             document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active-link'));
+
+            function pickBestYT(results) {
+                const yt = (results || []).filter(v => v.site === 'YouTube');
+                const trailers = yt.filter(v => v.type === 'Trailer').sort((a,b) => (b.official?1:0)-(a.official?1:0));
+                if (trailers.length) return trailers.slice(0, 5);
+                const teasers = yt.filter(v => v.type === 'Teaser').sort((a,b) => (b.official?1:0)-(a.official?1:0));
+                if (teasers.length) return teasers.slice(0, 5);
+                const extra = yt.filter(v => ['Clip','Featurette','Behind the Scenes'].includes(v.type));
+                if (extra.length) return extra.slice(0, 5);
+                return yt.slice(0, 5);
+            }
+
             try {
                 const dId = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}?api_key=${API_KEY}&language=id-ID&append_to_response=videos&include_video_language=en,id,hi,th,ko,ja,ru,null`);
-                const allVideos = (dId.videos?.results || []).filter(v => v.site === 'YouTube' && v.official === true && (v.type === 'Trailer' || v.type === 'Teaser')).sort((a, b) => (a.type === 'Trailer' ? -1 : 1));
-                if(allVideos.length > 0) {
-                    let vidsToDisplay = allVideos.slice(0, 5);
+                let vidsToDisplay = pickBestYT(dId.videos?.results);
+
+                if (!vidsToDisplay.length) {
+                    const enVid = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}/videos?api_key=${API_KEY}&language=en-US`);
+                    vidsToDisplay = pickBestYT(enVid.results);
+                }
+
+                if (vidsToDisplay.length > 0) {
                     vidsToDisplay.forEach((v, i) => {
                         const embedUrl = `https://www.youtube.com/embed/${v.key}?enablejsapi=1&autoplay=${i===0?1:0}&rel=0&modestbranding=1&mute=0`;
                         track.innerHTML += `<div class="carousel-slide"><iframe id="vid-${i}" src="${embedUrl}" class="w-full h-full" allow="autoplay; fullscreen"></iframe></div>`;
-                        if(vidsToDisplay.length > 1) { dots.innerHTML += `<div class="dot w-1.5 h-1.5 rounded-full ${i===currentIdx?'bg-blue-500':'bg-zinc-700'}"></div>`; }
+                        if (vidsToDisplay.length > 1) { dots.innerHTML += `<div class="dot w-1.5 h-1.5 rounded-full ${i===currentIdx?'bg-blue-500':'bg-zinc-700'}"></div>`; }
                     });
                     document.getElementById('swipeOverlay').style.display = vidsToDisplay.length > 1 ? 'block' : 'none';
                 } else {
@@ -2947,16 +2975,37 @@
                 document.getElementById('swipeOverlay').style.display = 'none';
             };
 
-            const allVideos = (dId.videos?.results || [])
-                .filter(v => v.site === 'YouTube' && v.official === true && (v.type === 'Trailer' || v.type === 'Teaser'))
-                .sort((a, b) => (a.type === 'Trailer' ? -1 : 1));
+            // Pilih video terbaik dari hasil TMDb — tanpa syarat official
+            function pickBestYT(results) {
+                const yt = (results || []).filter(v => v.site === 'YouTube');
+                // 1. Trailer (official duluan)
+                const trailers = yt.filter(v => v.type === 'Trailer').sort((a,b) => (b.official?1:0)-(a.official?1:0));
+                if (trailers.length) return trailers.slice(0, 5);
+                // 2. Teaser
+                const teasers = yt.filter(v => v.type === 'Teaser').sort((a,b) => (b.official?1:0)-(a.official?1:0));
+                if (teasers.length) return teasers.slice(0, 5);
+                // 3. Clip / Featurette / Behind the Scenes
+                const extra = yt.filter(v => ['Clip','Featurette','Behind the Scenes'].includes(v.type));
+                if (extra.length) return extra.slice(0, 5);
+                // 4. Video YouTube apapun yang ada
+                return yt.slice(0, 5);
+            }
 
-            if(allVideos.length > 0) { 
-                let vidsToDisplay = allVideos.slice(0, 5);
+            let vidsToDisplay = pickBestYT(dId.videos?.results);
+
+            // Fallback: fetch endpoint /videos bahasa en-US jika masih kosong
+            if (!vidsToDisplay.length) {
+                try {
+                    const enVid = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}/videos?api_key=${API_KEY}&language=en-US`);
+                    vidsToDisplay = pickBestYT(enVid.results);
+                } catch(e) {}
+            }
+
+            if (vidsToDisplay.length > 0) { 
                 vidsToDisplay.forEach((v, i) => { 
                     const embedUrl = `https://www.youtube.com/embed/${v.key}?enablejsapi=1&autoplay=${i===0?1:0}&rel=0&modestbranding=1&mute=0`;
                     track.innerHTML += `<div class="carousel-slide"><iframe id="vid-${i}" src="${embedUrl}" class="w-full h-full" allow="autoplay; fullscreen"></iframe></div>`; 
-                    if(vidsToDisplay.length > 1) { dots.innerHTML += `<div class="dot w-1.5 h-1.5 rounded-full ${i===currentIdx?'bg-blue-500':'bg-zinc-700'}"></div>`; }
+                    if (vidsToDisplay.length > 1) { dots.innerHTML += `<div class="dot w-1.5 h-1.5 rounded-full ${i===currentIdx?'bg-blue-500':'bg-zinc-700'}"></div>`; }
                 }); 
                 document.getElementById('swipeOverlay').style.display = vidsToDisplay.length > 1 ? 'block' : 'none'; 
             } else { 
@@ -2991,7 +3040,7 @@
             document.getElementById('mDateDisplay').innerText = rel ? new Date(rel).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
             
             let serverButtonsHTML = '';
-            for(let i=1; i<=20; i++) {
+            for(let i=1; i<=19; i++) {
                 serverButtonsHTML += `<button class="server-btn ${i===1?'active-link':''}" onclick="changeServer(${i}, this)">Server ${i}</button>`;
             }
             document.getElementById('serverList').innerHTML = serverButtonsHTML;
@@ -3095,8 +3144,37 @@
             activeServerIdx = srvIdx;
             document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active-link'));
             if(srvIdx !== 21) el.classList.add('active-link');
-            const url = buildEmbedUrl(window.currentMediaType, window.currentMediaId, activeSeason, activeEpisode, activeServerIdx);
-            playVid(url);
+
+            if (srvIdx === 21) {
+                // Dailymotion — pakai parameter khusus, tidak pakai enablejsapi/mute
+                const dmId = currentDailymotionId || '';
+                if (!dmId) { alert('Trailer Dailymotion tidak tersedia untuk judul ini.'); return; }
+                const dmUrl = `https://www.dailymotion.com/embed/video/${dmId}?autoplay=1&mute=0&ui-theme=dark`;
+                const track = document.getElementById('carouselTrack');
+                const dots = document.getElementById('carouselDots');
+                const loader = document.getElementById('videoLoader');
+                loader.classList.remove('hidden');
+                track.querySelectorAll('iframe').forEach(f => { f.src = ''; f.remove(); });
+                track.innerHTML = '';
+                dots.innerHTML = '';
+                const slide = document.createElement('div');
+                slide.className = 'carousel-slide';
+                const iframe = document.createElement('iframe');
+                iframe.id = 'player-frame';
+                iframe.src = dmUrl;
+                iframe.className = 'w-full h-full';
+                iframe.allowFullscreen = true;
+                iframe.allow = 'autoplay';
+                iframe.setAttribute('frameborder', '0');
+                iframe.onload = () => loader.classList.add('hidden');
+                slide.appendChild(iframe);
+                track.appendChild(slide);
+                track.style.transform = 'translateX(0)';
+                document.getElementById('swipeOverlay').style.display = 'none';
+            } else {
+                const url = buildEmbedUrl(window.currentMediaType, window.currentMediaId, activeSeason, activeEpisode, activeServerIdx);
+                playVid(url);
+            }
         }
 
         function changeEpisode(epNum, el) {
@@ -3129,9 +3207,8 @@
                 case 15: url = `https://vidsrc.net/embed/${type}/${id}${seriesSuffix}`; break;
                 case 16: url = `https://vidsrc.icu/embed/${type}/${id}${seriesSuffix}`; break;
                 case 17: url = `https://vidnest.fun/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 18: url = `https://player.autoembed.cc/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 19: url = `https://warezcdn.site/${type==='tv'?'serie':'filme'}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 20: url = `https://embed.smashystream.com/playere.php?tmdb=${id}${type==='tv'?`&season=${s}&episode=${e}`:''}`; break;
+                case 18: url = `https://warezcdn.site/${type==='tv'?'serie':'filme'}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 19: url = `https://embed.smashystream.com/playere.php?tmdb=${id}${type==='tv'?`&season=${s}&episode=${e}`:''}`; break;
                 case 21: url = `https://www.dailymotion.com/embed/video/${currentDailymotionId}`; break;
                 default: url = `https://vidrock.net/embed/${type}/${id}${seriesSuffix}`;
             }
@@ -3174,12 +3251,12 @@
         async function showLibrary(k) { const items = JSON.parse(localStorage.getItem(k) || '[]'); const grid = document.getElementById('feedGrid'); grid.innerHTML = ''; if (!items.length) { grid.innerHTML = '<div class="col-span-3 text-center py-20 text-zinc-500 text-xs">Belum ada konten disimpan</div>'; return; } const promises = items.map(i => fetchWithCache(`https://api.themoviedb.org/3/${i.type}/${i.id}?api_key=${API_KEY}&language=id-ID`).then(r => r)); const results = await Promise.all(promises); renderGrid(results.filter(m => m.id), grid); }
         window.onscroll = () => { if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000 && !loading && !searchQuery && !currentLibMode) { page++; loadFeed(false); } };
 
-        // ===== THEME TOGGLE =====
+        // ===== THEME TOGGLE (disabled - UI removed) =====
         function toggleTheme() {
             const isLight = document.body.classList.toggle('light-theme');
             localStorage.setItem('amnesTheme', isLight ? 'light' : 'dark');
-            document.getElementById('themeLabel').innerText = isLight ? 'Terang' : 'Gelap';
-            // toggle pill color handled by CSS
+            const lbl = document.getElementById('themeLabel');
+            if (lbl) lbl.innerText = isLight ? 'Terang' : 'Gelap';
         }
 
         // Apply saved theme on load
@@ -3187,11 +3264,6 @@
             const saved = localStorage.getItem('amnesTheme');
             if (saved === 'light') {
                 document.body.classList.add('light-theme');
-                // update label after DOM ready
-                document.addEventListener('DOMContentLoaded', () => {
-                    const lbl = document.getElementById('themeLabel');
-                    if (lbl) lbl.innerText = 'Terang';
-                });
             }
         })();
     </script>
