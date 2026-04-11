@@ -2884,25 +2884,32 @@
             currentIdx = 0;
             document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active-link'));
 
-            function pickBestYT(results) {
-                const yt = (results || []).filter(v => v.site === 'YouTube');
-                const trailers = yt.filter(v => v.type === 'Trailer').sort((a,b) => (b.official?1:0)-(a.official?1:0));
-                if (trailers.length) return trailers.slice(0, 5);
-                const teasers = yt.filter(v => v.type === 'Teaser').sort((a,b) => (b.official?1:0)-(a.official?1:0));
-                if (teasers.length) return teasers.slice(0, 5);
-                const extra = yt.filter(v => ['Clip','Featurette','Behind the Scenes'].includes(v.type));
-                if (extra.length) return extra.slice(0, 5);
-                return yt.slice(0, 5);
-            }
-
             try {
                 const dId = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}?api_key=${API_KEY}&language=id-ID&append_to_response=videos&include_video_language=en,id,hi,th,ko,ja,ru,null`);
-                let vidsToDisplay = pickBestYT(dId.videos?.results);
+                const originLang = dId.original_language || 'en';
 
-                if (!vidsToDisplay.length) {
-                    const enVid = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}/videos?api_key=${API_KEY}&language=en-US`);
-                    vidsToDisplay = pickBestYT(enVid.results);
+                function pickBestYT(results) {
+                    const yt = (results || []).filter(v => v.site === 'YouTube');
+                    if (!yt.length) return [];
+                    const trailers = yt.filter(v => v.type === 'Trailer');
+                    const teasers  = yt.filter(v => v.type === 'Teaser');
+                    const extras   = yt.filter(v => ['Clip','Featurette','Behind the Scenes'].includes(v.type));
+                    const pool = trailers.length ? trailers : teasers.length ? teasers : extras.length ? extras : yt;
+                    function langScore(v) {
+                        const iso = (v.iso_639_1 || '').toLowerCase();
+                        if (iso === 'en') return 3;
+                        if (iso === originLang) return 2;
+                        if (iso === '') return 1;
+                        return 0;
+                    }
+                    return pool.sort((a,b) => {
+                        const offDiff = (b.official?1:0) - (a.official?1:0);
+                        if (offDiff !== 0) return offDiff;
+                        return langScore(b) - langScore(a);
+                    }).slice(0, 5);
                 }
+
+                const vidsToDisplay = pickBestYT(dId.videos?.results);
 
                 if (vidsToDisplay.length > 0) {
                     vidsToDisplay.forEach((v, i) => {
@@ -2969,37 +2976,40 @@
             const dots = document.getElementById('carouselDots');
             track.innerHTML = ''; dots.innerHTML = ''; track.style.transform = 'translateX(0)';
 
-            const handleTrailerError = async () => {
-                const fallbackUrl = buildEmbedUrl(type, id, 1, 1, 1); 
-                track.innerHTML = `<div class="carousel-slide"><iframe id="player-frame" src="${fallbackUrl}" class="w-full h-full" allowfullscreen allow="autoplay"></iframe></div>`; 
-                document.getElementById('swipeOverlay').style.display = 'none';
-            };
+            // Deteksi bahasa asal film
+            const originLang = dId.original_language || 'en';
 
-            // Pilih video terbaik dari hasil TMDb — tanpa syarat official
+            // Fungsi pilih & urutkan video YouTube dengan prioritas bahasa yang benar
             function pickBestYT(results) {
                 const yt = (results || []).filter(v => v.site === 'YouTube');
-                // 1. Trailer (official duluan)
-                const trailers = yt.filter(v => v.type === 'Trailer').sort((a,b) => (b.official?1:0)-(a.official?1:0));
-                if (trailers.length) return trailers.slice(0, 5);
-                // 2. Teaser
-                const teasers = yt.filter(v => v.type === 'Teaser').sort((a,b) => (b.official?1:0)-(a.official?1:0));
-                if (teasers.length) return teasers.slice(0, 5);
-                // 3. Clip / Featurette / Behind the Scenes
-                const extra = yt.filter(v => ['Clip','Featurette','Behind the Scenes'].includes(v.type));
-                if (extra.length) return extra.slice(0, 5);
-                // 4. Video YouTube apapun yang ada
-                return yt.slice(0, 5);
+                if (!yt.length) return [];
+
+                // Pisahkan Trailer dan Teaser
+                const trailers = yt.filter(v => v.type === 'Trailer');
+                const teasers  = yt.filter(v => v.type === 'Teaser');
+                const extras   = yt.filter(v => ['Clip','Featurette','Behind the Scenes'].includes(v.type));
+                const pool = trailers.length ? trailers : teasers.length ? teasers : extras.length ? extras : yt;
+
+                // Skor prioritas bahasa per video
+                function langScore(v) {
+                    const iso = (v.iso_639_1 || '').toLowerCase();
+                    if (iso === 'en') return 3;                  // English selalu tinggi
+                    if (iso === originLang) return 2;            // Bahasa asal film
+                    if (iso === '') return 1;                    // Tidak ada label bahasa
+                    return 0;                                    // Bahasa lain
+                }
+
+                // Sort: official dulu, lalu skor bahasa
+                return pool
+                    .sort((a, b) => {
+                        const offDiff = (b.official?1:0) - (a.official?1:0);
+                        if (offDiff !== 0) return offDiff;
+                        return langScore(b) - langScore(a);
+                    })
+                    .slice(0, 5);
             }
 
-            let vidsToDisplay = pickBestYT(dId.videos?.results);
-
-            // Fallback: fetch endpoint /videos bahasa en-US jika masih kosong
-            if (!vidsToDisplay.length) {
-                try {
-                    const enVid = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}/videos?api_key=${API_KEY}&language=en-US`);
-                    vidsToDisplay = pickBestYT(enVid.results);
-                } catch(e) {}
-            }
+            const vidsToDisplay = pickBestYT(dId.videos?.results);
 
             if (vidsToDisplay.length > 0) { 
                 vidsToDisplay.forEach((v, i) => { 
@@ -3008,8 +3018,11 @@
                     if (vidsToDisplay.length > 1) { dots.innerHTML += `<div class="dot w-1.5 h-1.5 rounded-full ${i===currentIdx?'bg-blue-500':'bg-zinc-700'}"></div>`; }
                 }); 
                 document.getElementById('swipeOverlay').style.display = vidsToDisplay.length > 1 ? 'block' : 'none'; 
-            } else { 
-                await handleTrailerError();
+            } else {
+                // Fallback langsung ke Server 1 — tidak fetch lagi agar tidak lemot
+                const fallbackUrl = buildEmbedUrl(type, id, 1, 1, 1); 
+                track.innerHTML = `<div class="carousel-slide"><iframe id="player-frame" src="${fallbackUrl}" class="w-full h-full" allowfullscreen allow="autoplay"></iframe></div>`; 
+                document.getElementById('swipeOverlay').style.display = 'none';
             }
 
             try {
