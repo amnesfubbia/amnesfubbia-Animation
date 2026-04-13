@@ -3338,6 +3338,40 @@
         
         let _loaderTimer = null;
 
+        // Blokir redirect paksa dari iframe streaming (iklan yang bajak tab)
+        // Cara kerja: deteksi jika halaman utama mau di-navigate ke URL lain
+        // yang bukan berasal dari aksi user → batalkan
+        (function blockIframeRedirect() {
+            let _lastUserAction = 0;
+            // Tandai setiap interaksi user yang sah
+            document.addEventListener('click', () => { _lastUserAction = Date.now(); }, true);
+            document.addEventListener('touchend', () => { _lastUserAction = Date.now(); }, true);
+            document.addEventListener('keydown', () => { _lastUserAction = Date.now(); }, true);
+
+            // Intersepsi beforeunload — dipanggil saat halaman mau pindah
+            window.addEventListener('beforeunload', (e) => {
+                const timeSinceUser = Date.now() - _lastUserAction;
+                // Jika tidak ada aksi user dalam 1.5 detik terakhir → redirect dari iframe
+                if (timeSinceUser > 1500) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                    // Kembalikan ke halaman ini
+                    window.history.go(0);
+                }
+            });
+
+            // Blokir window.open dari iframe yang mencurigakan (popup iklan)
+            const _origOpen = window.open;
+            window.open = function(url, target, features) {
+                // Izinkan hanya jika dipanggil dalam 500ms setelah aksi user
+                if (Date.now() - _lastUserAction < 500) {
+                    return _origOpen.call(window, url, target, features);
+                }
+                console.log('[amnes] Popup diblokir:', url);
+                return null;
+            };
+        })();
+
         function playVid(url, el) { 
             const track = document.getElementById('carouselTrack'); 
             const dots = document.getElementById('carouselDots'); 
@@ -3359,12 +3393,7 @@
             newIframe.className = "w-full h-full";
             newIframe.allowFullscreen = true;
             newIframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
-            // FIX 2B: sandbox blokir top-navigation agar iframe tidak bisa
-            // redirect halaman utama ke iklan (window.top.location)
-            // allow-popups-to-escape-sandbox dihilangkan agar popup iklan tidak muncul
-            newIframe.setAttribute('sandbox', 
-                'allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-modals'
-            );
+            // Tanpa sandbox — server streaming butuh akses penuh untuk load video
             
             // FIX BUG 2: fallback timer — loader pasti sembunyi setelah 6 detik
             newIframe.onload = () => {
