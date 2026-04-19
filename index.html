@@ -2872,16 +2872,20 @@
         async function fetchWithCache(url) {
             const cached = sessionStorage.getItem(url);
             if (cached) return JSON.parse(cached);
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 8000); // timeout 8 detik
-            try {
-                const res = await fetch(url, { signal: controller.signal });
-                const data = await res.json();
-                try { sessionStorage.setItem(url, JSON.stringify(data)); } catch(e) {}
-                return data;
-            } finally {
-                clearTimeout(timer);
-            }
+            // Bungkus dalam Promise dengan timeout manual — tidak simpan AbortController di scope global
+            return new Promise(async (resolve, reject) => {
+                const timer = setTimeout(() => reject(new Error('fetch timeout')), 8000);
+                try {
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    clearTimeout(timer);
+                    try { sessionStorage.setItem(url, JSON.stringify(data)); } catch(e) {}
+                    resolve(data);
+                } catch(e) {
+                    clearTimeout(timer);
+                    reject(e);
+                }
+            });
         }
 
         async function openActorProfile(actorId) {
@@ -4194,9 +4198,9 @@
         function closeD() { document.querySelectorAll('.filter-dropdown').forEach(d => d.style.display = 'none'); document.getElementById('filterOverlay').style.display = 'none'; document.body.style.overflow = 'auto'; }
 
         async function loadFeed(isNew = true) {
-            if(loading && isNew) { if(abortController) abortController.abort(); }
+            if(loading && isNew) { loading = false; } // reset flag agar request baru bisa jalan
             if(loading && !isNew) return;
-            loading = true; abortController = new AbortController();
+            loading = true;
             const grid = document.getElementById('searchOverlay').style.display === 'block' ? document.getElementById('searchGrid') : document.getElementById('feedGrid');
             if(isNew) { page = 1; grid.innerHTML = ''; }
             let url;
@@ -4388,18 +4392,12 @@
         // Cek apakah video YouTube bisa diembed (bukan age-restricted / unavailable)
         // YouTube oEmbed return 200 jika OK, 401/403/404 jika restricted
         async function checkYouTubeEmbeddable(key) {
-            try {
-                const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), 4000);
-                const res = await fetch(
-                    `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${key}&format=json`,
-                    { method: 'GET', signal: controller.signal }
-                );
-                clearTimeout(timer);
-                return res.ok;
-            } catch(e) {
-                return false;
-            }
+            return new Promise(resolve => {
+                const timer = setTimeout(() => resolve(false), 4000);
+                fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${key}&format=json`, { method: 'GET' })
+                    .then(res => { clearTimeout(timer); resolve(res.ok); })
+                    .catch(() => { clearTimeout(timer); resolve(false); });
+            });
         }
 
         async function filterEmbeddableVideos(videos) {
@@ -4633,11 +4631,13 @@
                     const qName = dEn.title || dEn.name || dId.title || dId.name;
                     const qYear = (dId.release_date || dId.first_air_date || "").split('-')[0];
                     const searchQueryDaily = encodeURIComponent(`${qName} ${qYear} official trailer`);
-                    const controller = new AbortController();
-                    const timer = setTimeout(() => controller.abort(), 5000);
-                    const dailyRes = await fetch(`https://api.dailymotion.com/videos?search=${searchQueryDaily}&fields=id,title&limit=1`, { signal: controller.signal });
-                    clearTimeout(timer);
-                    const dailyData = await dailyRes.json();
+                    const dailyData = await new Promise((resolve, reject) => {
+                        const timer = setTimeout(() => reject(new Error('timeout')), 5000);
+                        fetch(`https://api.dailymotion.com/videos?search=${searchQueryDaily}&fields=id,title&limit=1`)
+                            .then(r => r.json())
+                            .then(d => { clearTimeout(timer); resolve(d); })
+                            .catch(e => { clearTimeout(timer); reject(e); });
+                    });
                     if (dailyData.list && dailyData.list.length > 0) {
                         currentDailymotionId = dailyData.list[0].id;
                     }
