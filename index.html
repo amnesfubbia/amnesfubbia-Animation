@@ -2581,6 +2581,11 @@
             document.querySelectorAll('#reelsContainer iframe').forEach(f => {
                 try { f.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*'); } catch(e) {}
             });
+            // Reset reels state agar konten baru saat dibuka kembali
+            _reelsLoaded = false;
+            _reelsData = [];
+            _reelsPage = 1;
+            document.getElementById('reelsContainer').innerHTML = '<div class="reel-loading"><div class="spinner"></div></div>';
             document.body.style.overflow = 'auto';
         }
 
@@ -2614,6 +2619,12 @@
         window.addEventListener('popstate', function(event) {
             const state = event.state ? event.state.view : null;
 
+            // Soundtrack overlay — cek paling awal (z-index tertinggi)
+            if (document.getElementById('soundtrackModal').style.display === 'block') {
+                _closeSoundtrackSilent();
+                return;
+            }
+
             // Filter dropdown (negara/genre/tahun)
             const anyFilterOpen = document.querySelector('.filter-dropdown[style*="block"]');
             if (anyFilterOpen) {
@@ -2621,22 +2632,15 @@
                 return;
             }
 
-            // Soundtrack overlay
-            if (document.getElementById('soundtrackModal').style.display === 'block') {
-                _closeSoundtrackSilent();
-                return;
-            }
-
             // Reel detail sheet
             if (document.getElementById('reelDetailSheet').style.display === 'block') {
                 closeReelDetail();
-                history.pushState({view: 'reels'}, '');
                 return;
             }
 
-            // Reels modal
+            // Reels modal — pakai silent agar tidak reset state & tidak push history baru
             if (document.getElementById('reelsModal').style.display === 'block') {
-                closeReels();
+                _closeReelsSilent();
                 return;
             }
 
@@ -2656,7 +2660,6 @@
             if (document.getElementById('movieModal').style.display === 'block' &&
                 document.getElementById('movieModal').classList.contains('tv-mode')) {
                 _closeModalSilent();
-                // Buka kembali tvModal
                 document.getElementById('tvSearchInp').value = '';
                 document.getElementById('tvSearchBox').style.display = 'none';
                 renderTvList('');
@@ -3675,7 +3678,7 @@
 
             // Push history
             currentLibMode = true;
-            history.pushState({view: 'bookmarks'}, '');
+            history.replaceState({view: 'bookmarks'}, '');
 
             // Load bookmark grid
             const grid = document.getElementById('feedGrid');
@@ -4075,7 +4078,7 @@
                     currentLibMode = false; currentCastId = ''; searchQuery = ''; currentCountry = h.c || ''; currentGenre = h.g || ''; currentCompany = h.com || ''; currentSchedule = 'trending'; currentType = h.t; currentYear = ''; loadFeed(true); 
                 }; 
                 const circleClass = h.s ? 'highlight-circle logo-small' : 'highlight-circle';
-                div.innerHTML = `<div class="${circleClass}"><img src="${h.img}" onerror="this.src='https://placehold.co/100/111/555?text=${h.n}'"></div><div class="highlight-text">${h.n}</div>`; 
+                div.innerHTML = `<div class="${circleClass}"><img src="${h.img}" alt="${h.n}"></div><div class="highlight-text">${h.n}</div>`; 
                 cont.appendChild(div); 
             }); 
         }
