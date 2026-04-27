@@ -1243,6 +1243,27 @@
             border-color: #fff; background: #111;
         }
 
+
+        /* ===== MOVIE INFO GRID (2 col, no border) ===== */
+        .minfo-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 8px 12px; margin-top: 10px; margin-bottom: 10px;
+        }
+        .minfo-cell {
+            background: transparent;
+            padding: 0;
+        }
+        .minfo-cell.full-width { grid-column: 1 / -1; }
+        .minfo-key {
+            font-size: 9px; font-weight: 800; color: #555;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            margin-bottom: 2px; display: block;
+        }
+        .minfo-val {
+            font-size: 12px; font-weight: 600; color: #ccc;
+            line-height: 1.4; display: block;
+        }
+
     </style>
 </head>
 <body>
@@ -1287,6 +1308,8 @@
                     </div>
                 </div>
                 <div class="ls-top-right">
+                    <i id="lsLikeBtn" class="fa-regular fa-heart ls-btn ls-btn-sm" onclick="event.stopPropagation(); toggleLib('likes'); updateLsLibBtns()" title="Suka"></i>
+                    <i id="lsBmBtn" class="fa-regular fa-bookmark ls-btn ls-btn-sm" onclick="event.stopPropagation(); toggleLib('bookmarks'); updateLsLibBtns()" title="Simpan"></i>
                     <i class="fa-solid fa-lock-open ls-btn ls-btn-sm" onclick="event.stopPropagation(); lockScreen()" title="Kunci layar"></i>
                 </div>
             </div>
@@ -1296,7 +1319,7 @@
                 <div class="ls-controls-row">
                     <div class="ls-controls-left">
                         <i class="fa-solid fa-rotate-right ls-btn ls-btn-sm" onclick="event.stopPropagation(); replayTrailerLs()" title="Replay"></i>
-                        <span class="ls-server-pill" id="lsServerPill" onclick="event.stopPropagation(); toggleLsServerPanel()">Server 1</span>
+                        <span class="ls-server-pill" id="lsServerPill" onclick="event.stopPropagation(); toggleLsServerPanel()">Pilih Server</span>
                     </div>
                     <div class="ls-controls-right">
                         <i class="fa-solid fa-expand ls-btn ls-btn-sm" onclick="event.stopPropagation(); tryFullscreen()" title="Fullscreen"></i>
@@ -1505,10 +1528,11 @@
             </div>
 
             <div id="filterBar">
-                <div class="pill-grid grid-cols-3">
+                <div class="pill-grid grid-cols-4">
                     <button class="pill" id="btnCountry" onclick="toggleFilter(event, 'countryDropdown')">Negara <i class="fa-solid fa-caret-down"></i></button>
                     <button class="pill" id="btnGenre" onclick="toggleFilter(event, 'genreDropdown')">Genre <i class="fa-solid fa-caret-down"></i></button>
                     <button class="pill" id="yearBtn" onclick="toggleFilter(event, 'yearDropdown')">Tahun <i class="fa-solid fa-caret-down"></i></button>
+                    <button class="pill" id="btnRating" onclick="toggleFilter(event, 'ratingDropdown')">Rating <i class="fa-solid fa-caret-down"></i></button>
                 </div>
             </div>
         </div>
@@ -1556,6 +1580,7 @@
         </div>
     </div>
 
+    <div id="ratingDropdown" class="filter-dropdown no-scrollbar"></div>
     <div id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})"><i class="fa-solid fa-arrow-up"></i></div>
     <div id="filterOverlay" onclick="closeD(); closeSoundtrack()"></div>
     <div id="countryDropdown" class="filter-dropdown no-scrollbar"></div>
@@ -1612,6 +1637,8 @@
                         <span id="mToggleBtn" class="toggle-btn hidden" onclick="handleToggleDesc()">selengkapnya</span>
                     </div>
                 </div>
+
+                <div id="mInfoGrid" class="minfo-grid" style="display:none"></div>
                 
                 <div id="mHashtags" class="ig-hashtags"></div>
 
@@ -1850,7 +1877,7 @@
 
     <script>
         const API_KEY = 'bfa7df5310c9974f62f26c6789a8c00d';
-        let page = 1, loading = false, currentType = 'multi', currentGenre = '', currentYear = '', currentCountry = '', currentSchedule = 'trending', searchQuery = '', currentCompany = '', currentLibMode = false, currentCastId = '';
+        let page = 1, loading = false, currentType = 'multi', currentGenre = '', currentYear = '', currentCountry = '', currentRating = '', currentSchedule = 'trending', searchQuery = '', currentCompany = '', currentLibMode = false, currentCastId = '';
         let isExpanded = false, globalFullDesc = "", globalEnDesc = "", currentIdx = 0, startX = 0, isTranslated = false, originalIndoDesc = "";
         let abortController = null;
         let isLsPaused = false, isLsMuted = false, lsControlTimer;
@@ -2528,6 +2555,7 @@
                 postContent.innerHTML = `
                 <div class="mb-1"><span class="ig-username">amnesfubbia</span><span id="mDesc" class="ig-caption"></span>
                 <div class="mt-1"><span id="mToggleBtn" class="toggle-btn hidden" onclick="handleToggleDesc()">selengkapnya</span></div></div>
+                <div id="mInfoGrid" class="minfo-grid" style="display:none"></div>
                 <div id="mHashtags" class="ig-hashtags"></div>
                 <div class="flex items-center gap-2 mt-1.5">
                     <div id="mDateDisplay" class="ig-date"></div>
@@ -2712,6 +2740,8 @@
 
             // Subtitle: server info
             lsSub.innerText = `Server ${activeServerIdx} · amnesfubbia`;
+            document.getElementById('lsServerPill').innerText = activeServerIdx === 21 ? 'Trailer' : `Server ${activeServerIdx}`;
+            updateLsLibBtns();
 
             document.body.classList.add('landscape-active');
             overlay.style.display = 'block';
@@ -2770,13 +2800,16 @@
             // update main server list
             document.querySelectorAll('.server-btn').forEach((b, i) => {
                 b.classList.remove('active-link');
-                if (i + 1 === srvIdx) b.classList.add('active-link');
+                // server 1-17 ada di index 0-16, server 19 ada di index 17
+                const btnSrvIdx = i < 17 ? i + 1 : 19;
+                if (btnSrvIdx === srvIdx) b.classList.add('active-link');
             });
             // update ls panel
             document.querySelectorAll('.ls-srv-btn').forEach(b => b.classList.remove('active-link'));
             el.classList.add('active-link');
-            // update pill text
+            // update pill text & subtitle
             document.getElementById('lsServerPill').innerText = srvIdx === 21 ? 'Trailer' : `Server ${srvIdx}`;
+            document.getElementById('lsSubtitle').innerText = `${srvIdx === 21 ? 'Trailer' : 'Server ' + srvIdx} · amnesfubbia`;
             // update subtitle
             document.getElementById('lsSubtitle').innerText = `Server ${srvIdx} · amnesfubbia`;
             // play
@@ -3285,7 +3318,8 @@
                     // js_api diaktifkan agar bisa pause via postMessage
                     // enablejsapi=1 wajib agar YT.Player onStateChange bekerja
                     // controls=1 dibiarkan agar event state change tidak diblokir
-                    const embedUrl = `https://www.youtube.com/embed/${reel.videoKey}?enablejsapi=1&autoplay=0&rel=0&modestbranding=1&showinfo=0&playsinline=1&iv_load_policy=3&origin=${encodeURIComponent(location.origin || location.href.split('/').slice(0,3).join('/'))}`;
+                    const isFirstSlide = isNew && _reelsData.length === 1;
+                    const embedUrl = `https://www.youtube.com/embed/${reel.videoKey}?enablejsapi=1&autoplay=${isFirstSlide?1:0}&rel=0&modestbranding=1&showinfo=0&playsinline=1&iv_load_policy=3&mute=0&origin=${encodeURIComponent(location.origin || location.href.split('/').slice(0,3).join('/'))}`;
                     const typeLabel = reel.type === 'movie' ? 'Film' : 'Serial';
                     const ratingStr = reel.rating ? `· ★${reel.rating}` : '';
                     const synopsisId = `reel-syn-${reel.movieId}`;
@@ -3330,6 +3364,18 @@
 
                 setupReelsAutoplay();
                 setupReelSwipeLeft();
+                // Trigger play manual untuk slide pertama
+                if (isNew) {
+                    setTimeout(() => {
+                        const firstSlide = document.querySelector('.reel-slide');
+                        if (firstSlide) {
+                            const fi = firstSlide.querySelector('iframe');
+                            if (fi) {
+                                try { fi.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*'); } catch(e) {}
+                            }
+                        }
+                    }, 1800);
+                }
                 _reelsPage++;
 
             } catch(e) {
@@ -3870,12 +3916,14 @@
         function backToHome() {
             closeModal(); closeSearch(); closeD(); closeActorModal(); closeTvModal();
             if(document.getElementById('reelsModal').style.display === 'block') closeReels();
-            currentGenre = ''; currentYear = ''; currentCountry = ''; currentSchedule = 'trending'; 
+            currentGenre = ''; currentYear = ''; currentCountry = ''; currentRating = ''; currentSchedule = 'trending'; 
             currentType = 'multi'; searchQuery = ''; currentCastId = ''; currentCompany = '';
             document.querySelectorAll('.highlight-item').forEach(i => i.classList.remove('active-hl'));
             const btnCountry = document.getElementById('btnCountry');
             const btnGenre = document.getElementById('btnGenre');
             const btnYear = document.getElementById('yearBtn');
+            const btnRatingEl = document.getElementById('btnRating');
+            if(btnRatingEl) { btnRatingEl.innerHTML = 'Rating <i class="fa-solid fa-caret-down"></i>'; btnRatingEl.classList.remove('active-pill'); }
             btnCountry.innerHTML = 'Negara <i class="fa-solid fa-caret-down"></i>';
             btnGenre.innerHTML = 'Genre <i class="fa-solid fa-caret-down"></i>';
             btnYear.innerHTML = 'Tahun <i class="fa-solid fa-caret-down"></i>';
@@ -4181,6 +4229,12 @@
             countriesFinal.forEach(c => countryHTML += `<div class="filter-item" onclick="setCountry('${c[0]}','${c[1]}')">${c[1]}</div>`); 
             cD.innerHTML = countryHTML; 
 
+            // Rating dropdown
+            const rD = document.getElementById('ratingDropdown');
+            let ratingHTML = '<div class="filter-item sticky-reset" onclick="setRating(\'\',\'Rating\')">Semua Rating</div>';
+            [['9','★ 9+'],['8','★ 8+'],['7','★ 7+'],['6','★ 6+'],['5','★ 5+'],['4','★ 4+']].forEach(r => ratingHTML += `<div class="filter-item" onclick="setRating('${r[0]}','${r[1]}')">${r[1]}</div>`);
+            rD.innerHTML = ratingHTML;
+
             // Genre — lengkap, urut abjad (ID TMDb)
             const genres = [
                 [28,'Action'],[12,'Adventure'],[16,'Animasi'],
@@ -4220,6 +4274,7 @@
                 let endpoint = (currentType === 'tv') ? 'discover/tv' : 'discover/movie';
                 url = `https://api.themoviedb.org/3/${endpoint}?api_key=${API_KEY}&language=id-ID&page=${page}&include_adult=false&sort_by=popularity.desc`;
                 if(currentCountry) url += `&with_origin_country=${currentCountry}`;
+                if(currentRating) url += `&vote_average.gte=${currentRating}&vote_count.gte=50`;
                 if(currentGenre) url += `&with_genres=${currentGenre}`;
                 if(currentCompany) url += `&with_companies=${currentCompany}`;
                 if(currentType === 'short') { url += `&with_runtime.lte=20&with_runtime.gte=1&vote_count.lte=5000`; }
@@ -4347,7 +4402,8 @@
         function toggleFilterBar() { const b = document.getElementById('filterBar'); b.style.display = b.style.display === 'block' ? 'none' : 'block'; }
         
         function setSchedule(v, el) { 
-            currentLibMode = false; currentCastId = ''; searchQuery = ''; 
+            currentLibMode = false; currentCastId = ''; searchQuery = ''; currentRating = ''; 
+            const _btnR3 = document.getElementById('btnRating'); if(_btnR3){ _btnR3.innerHTML='Rating <i class="fa-solid fa-caret-down"></i>'; _btnR3.classList.remove('active-pill'); }
             const isActive = el.classList.contains('active');
             document.querySelectorAll('.btn-ig').forEach(b=>b.classList.remove('active')); 
             if(isActive) { currentSchedule = 'trending'; } 
@@ -4357,11 +4413,21 @@
         }
 
         function setFilter(k, v, el) { 
-            currentLibMode = false; currentCastId = ''; searchQuery = ''; 
+            currentLibMode = false; currentCastId = ''; searchQuery = ''; currentRating = ''; 
+            const _btnR2 = document.getElementById('btnRating'); if(_btnR2){ _btnR2.innerHTML='Rating <i class="fa-solid fa-caret-down"></i>'; _btnR2.classList.remove('active-pill'); }
             currentType = v; 
             document.querySelectorAll('.stat-item').forEach(s => s.classList.remove('active-stat'));
             el.classList.add('active-stat');
             loadFeed(true); 
+        }
+
+        function setRating(r, n) {
+            currentRating = r;
+            const btn = document.getElementById('btnRating');
+            btn.innerHTML = n + ' <i class="fa-solid fa-caret-down"></i>';
+            r ? btn.classList.add('active-pill') : btn.classList.remove('active-pill');
+            if(currentType === 'multi') currentType = 'movie';
+            closeD(); loadFeed(true);
         }
 
         function setYear(y) { 
@@ -4671,13 +4737,33 @@
             const relYear = (dId.release_date || dId.first_air_date || "2026").split('-')[0];
             const contentKind = (type === 'tv') ? 'tv' : 'movie';
             const genresArr = (dId.genres || []).map(g => `#${g.name.replace(/[^a-zA-Z0-9]/g, '')}`).slice(0, 3).join(' ');
-            document.getElementById('mHashtags').innerHTML = `<br> #${(displayTitle).replace(/[^a-zA-Z0-9]/g, '')} #${relYear} #${contentKind} <br> ${genresArr}`;
-            const rel = dId.release_date || dId.first_air_date || ""; 
+            const rel = dId.release_date || dId.first_air_date || "";
             document.getElementById('mDateDisplay').innerText = rel ? new Date(rel).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+            // Build movie info grid (2 col, no border)
+            const runTime = dId.runtime ? `${dId.runtime} menit` : (dId.episode_run_time && dId.episode_run_time[0] ? `${dId.episode_run_time[0]} menit/ep` : '—');
+            const miCountries = (dId.production_countries || []).map(c => c.name).join(', ') || '—';
+            const miStudios = (dId.production_companies || []).slice(0, 3).map(c => c.name).join(', ') || '—';
+            const miGenres = (dId.genres || []).map(g => g.name).join(', ') || '—';
+            const langMap = {'en':'English','id':'Indonesia','ko':'Korean','ja':'Japanese','zh':'Mandarin','hi':'Hindi','fr':'French','de':'German','es':'Spanish','it':'Italian','pt':'Portuguese','ru':'Russian','ar':'Arabic','th':'Thai','nl':'Dutch','tr':'Turkish','pl':'Polish','sv':'Swedish','da':'Danish','fi':'Finnish','no':'Norwegian','vi':'Vietnamese','ms':'Malay','tl':'Filipino'};
+            const langCode = dId.original_language || '';
+            const miLanguage = langMap[langCode] || (langCode ? langCode.toUpperCase() : '—');
+            const miReleaseStr = rel ? new Date(rel).toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}) : '—';
+            const infoGridEl = document.getElementById('mInfoGrid');
+            if (infoGridEl) {
+                infoGridEl.innerHTML = `
+                <div class="minfo-cell"><span class="minfo-key">Released</span><span class="minfo-val">${miReleaseStr}</span></div>
+                <div class="minfo-cell"><span class="minfo-key">Run Time</span><span class="minfo-val">${runTime}</span></div>
+                <div class="minfo-cell"><span class="minfo-key">Country</span><span class="minfo-val">${miCountries}</span></div>
+                <div class="minfo-cell"><span class="minfo-key">Language</span><span class="minfo-val">${miLanguage}</span></div>
+                <div class="minfo-cell full-width"><span class="minfo-key">Studios</span><span class="minfo-val">${miStudios}</span></div>
+                <div class="minfo-cell full-width"><span class="minfo-key">Genre</span><span class="minfo-val">${miGenres}</span></div>`;
+                infoGridEl.style.display = 'grid';
+            }
+            document.getElementById('mHashtags').innerHTML = `<br> #${(displayTitle).replace(/[^a-zA-Z0-9]/g, '')} #${relYear} #${contentKind} <br> ${genresArr}`;
             
             let serverButtonsHTML = '';
             for(let i=1; i<=17; i++) {
-                serverButtonsHTML += `<button class="server-btn ${i===1?'active-link':''}" onclick="changeServer(${i}, this)">Server ${i}</button>`;
+                serverButtonsHTML += `<button class="server-btn" onclick="changeServer(${i}, this)">Server ${i}</button>`;
             }
             // Server 19 ditampilkan sebagai "Server 18" (server 18 dan 20 dihapus)
             serverButtonsHTML += `<button class="server-btn" onclick="changeServer(19, this)">Server 18</button>`;
@@ -4706,6 +4792,7 @@
                 track.querySelectorAll('iframe').forEach(f => { f.src = ""; f.remove(); }); 
                 track.innerHTML = ''; 
             } 
+            const _ig = document.getElementById('mInfoGrid'); if(_ig){ _ig.style.display='none'; _ig.innerHTML=''; }
             const modal = document.getElementById('movieModal');
             modal.classList.remove('tv-mode');
             modal.style.display = 'none'; 
@@ -4718,6 +4805,7 @@
                     <span id="mDesc" class="ig-caption"></span>
                     <div class="mt-1"><span id="mToggleBtn" class="toggle-btn hidden" onclick="handleToggleDesc()">selengkapnya</span></div>
                 </div>
+                <div id="mInfoGrid" class="minfo-grid" style="display:none"></div>
                 <div id="mHashtags" class="ig-hashtags"></div>
                 <div class="flex items-center gap-2 mt-1.5">
                     <div id="mDateDisplay" class="ig-date"></div>
@@ -4876,6 +4964,7 @@
 
         async function loadEpisodes() { 
             activeSeason = document.getElementById('seasonSel').value; 
+            activeEpisode = 1;
             const data = await fetchWithCache(`https://api.themoviedb.org/3/tv/${window.currentMediaId}/season/${activeSeason}?api_key=${API_KEY}`); 
             const episodes = data.episodes || [];
             document.getElementById('episodeGrid').innerHTML = episodes.map((e) => { 
@@ -4899,6 +4988,17 @@
                 } 
             }); 
         }
+        function updateLsLibBtns() {
+            const id = window.currentMediaId;
+            if (!id) return;
+            const isL = JSON.parse(localStorage.getItem('likes') || '[]').some(x=>x.id==id);
+            const isB = JSON.parse(localStorage.getItem('bookmarks') || '[]').some(x=>x.id==id);
+            const lBtn = document.getElementById('lsLikeBtn');
+            const bBtn = document.getElementById('lsBmBtn');
+            if(lBtn) lBtn.className = (isL ? 'fa-solid fa-heart' : 'fa-regular fa-heart') + ' ls-btn ls-btn-sm';
+            if(bBtn) bBtn.className = (isB ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark') + ' ls-btn ls-btn-sm';
+        }
+
         function updateLibButtons(id) { const isL = JSON.parse(localStorage.getItem('likes') || '[]').some(x=>x.id==id); const isB = JSON.parse(localStorage.getItem('bookmarks') || '[]').some(x=>x.id==id); document.getElementById('btnLikeModal').className = isL ? 'fa-solid fa-heart text-red-500 interaction-icon' : 'fa-regular fa-heart interaction-icon'; document.getElementById('btnBookModal').className = isB ? 'fa-solid fa-bookmark text-white interaction-icon' : 'fa-regular fa-bookmark interaction-icon'; document.getElementById('btnLikeModal').onclick = () => toggleLib('likes'); document.getElementById('btnBookModal').onclick = () => toggleLib('bookmarks'); }
         function toggleLib(k) { let items = JSON.parse(localStorage.getItem(k) || '[]'); const idx = items.findIndex(x => x.id == window.currentMediaId); idx > -1 ? items.splice(idx,1) : items.push({id: window.currentMediaId, type: window.currentMediaType}); localStorage.setItem(k, JSON.stringify(items)); updateLibButtons(window.currentMediaId); }
         async function switchTab(mode, el) { 
@@ -4913,7 +5013,9 @@
                 history.pushState({view: mode}, '');
                 showLibrary(mode); 
             } else { 
-                currentLibMode = false; currentCastId = ''; searchQuery = ''; currentType='multi'; currentSchedule='trending'; currentCompany=''; loadFeed(true); 
+                currentLibMode = false; currentCastId = ''; searchQuery = ''; currentType='multi'; currentSchedule='trending'; currentCompany=''; currentRating=''; 
+                const _btnR = document.getElementById('btnRating'); if(_btnR){ _btnR.innerHTML='Rating <i class="fa-solid fa-caret-down"></i>'; _btnR.classList.remove('active-pill'); }
+                loadFeed(true); 
             } 
         }
         async function showLibrary(k) { 
