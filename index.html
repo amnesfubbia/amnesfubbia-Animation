@@ -4065,6 +4065,8 @@
             const btnCountry = document.getElementById('btnCountry');
             const btnGenre = document.getElementById('btnGenre');
             const btnYear = document.getElementById('yearBtn');
+            const btnRatingEl = document.getElementById('btnRating');
+            if(btnRatingEl) { btnRatingEl.innerHTML = 'Rating <i class="fa-solid fa-caret-down"></i>'; btnRatingEl.classList.remove('active-pill'); }
             btnCountry.innerHTML = 'Negara <i class="fa-solid fa-caret-down"></i>';
             btnGenre.innerHTML = 'Genre <i class="fa-solid fa-caret-down"></i>';
             btnYear.innerHTML = 'Tahun <i class="fa-solid fa-caret-down"></i>';
@@ -5134,7 +5136,8 @@
         }
 
         async function loadEpisodes() { 
-            activeSeason = document.getElementById('seasonSel').value; 
+            activeSeason = document.getElementById('seasonSel').value;
+            activeEpisode = 1;
             const data = await fetchWithCache(`https://api.themoviedb.org/3/tv/${window.currentMediaId}/season/${activeSeason}?api_key=${API_KEY}`); 
             const episodes = data.episodes || [];
             document.getElementById('episodeGrid').innerHTML = episodes.map((e) => { 
