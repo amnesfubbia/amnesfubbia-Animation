@@ -1317,12 +1317,34 @@
         .recently-item {
             flex: 0 0 58px; cursor: pointer;
             -webkit-tap-highlight-color: transparent;
+            position: relative;
         }
         .recently-img {
             width: 58px; height: 86px; border-radius: 8px;
             object-fit: cover; background: #111;
             display: block;
         }
+        .recently-del {
+            position: absolute; top: -5px; right: -5px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: rgba(0,0,0,0.85); border: 1.5px solid #333;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 8px; cursor: pointer;
+            -webkit-tap-highlight-color: transparent; z-index: 10;
+        }
+        .recently-del:active { background: #ff3b30; }
+        /* Recently viewed header row */
+        .recently-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .recently-clear-btn {
+            font-size: 10px; font-weight: 700; color: #555;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            padding: 2px 0;
+        }
+        .recently-clear-btn:active { color: #ff3b30; }
+
 
         /* ===== BADGE NEW on poster ===== */
         .badge-new {
@@ -1807,7 +1829,10 @@
         <div class="highlights-wrapper no-scrollbar"><div class="highlights-container no-scrollbar" id="highlightList"></div></div>
 
         <div id="recentlyViewedWrapper">
-            <span class="recently-label">Terakhir Dilihat</span>
+            <div class="recently-header">
+                <span class="recently-label" style="margin-bottom:0">Terakhir Dilihat</span>
+                <span class="recently-clear-btn" onclick="clearAllRecentlyViewed()">Hapus Semua</span>
+            </div>
             <div class="recently-scroll" id="recentlyScroll"></div>
         </div>
 
@@ -2644,7 +2669,7 @@
             if (_mBackBtn) _mBackBtn.setAttribute('onclick', 'handleModalBack()');
             document.getElementById('mDesc').innerText = '';
             document.getElementById('mLikeDisplay').innerText = '';
-            document.getElementById('mDateDisplay').innerText = '';
+            // mDateDisplay disabled
             document.getElementById('castContainer').innerHTML = '';
             document.getElementById('serverList').innerHTML = '';
             document.getElementById('seriesControl').classList.add('hidden');
@@ -2687,6 +2712,9 @@
             document.querySelectorAll('.tv-switcher-btn-new').forEach(b => b.classList.remove('active-ch'));
             el.classList.add('active-ch');
             document.getElementById('mTitle').innerText = '● LIVE: ' + name;
+            // Pastikan back btn tetap ke handleModalBack setelah switch channel
+            const _backBtn = document.querySelector('#movieModal .fa-chevron-left');
+            if (_backBtn) _backBtn.setAttribute('onclick', 'handleModalBack()');
 
             // Update schedule section
             const switcher = document.getElementById('tvChannelSwitcher');
@@ -2899,7 +2927,6 @@
                     <div class="poster-gallery-scroll" id="mPosterScroll"></div>
                 </div>
 <div id="mHashtags" style="display:none"></div>
-                <p id="mTranslateBtn" class="hidden" onclick="handleTranslate()" style="margin-top:4px"></p>
                 <div id="mDateDisplay" style="display:none"></div>
                 <div id="seriesControl" class="hidden mt-4 p-4 bg-zinc-950 rounded-2xl border border-zinc-900">
                     <div class="flex justify-between items-center mb-4">
@@ -4890,53 +4917,111 @@
             const id = window.currentMediaId;
             const track = document.getElementById('carouselTrack');
             const dots = document.getElementById('carouselDots');
-            
+
             track.querySelectorAll('iframe').forEach(f => { f.src = ""; f.remove(); });
             track.innerHTML = ''; dots.innerHTML = ''; track.style.transform = 'translateX(0)';
             currentIdx = 0;
             document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active-link'));
+
             try {
-                const dId = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}?api_key=${API_KEY}&language=id-ID&append_to_response=videos&include_video_language=en,id,hi,th,ko,ja,ru,null`);
-                let rVideos = (dId.videos?.results || []).filter(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
-                if (rVideos.length === 0) {
-                    try {
-                        const enVids = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}/videos?api_key=${API_KEY}&language=en-US`);
-                        rVideos = (enVids.results || []).filter(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
-                    } catch(e2) {}
-                }
+                // Fetch video - prioritas EN dulu
+                let rVideos = [];
+
+                // Step 1: Fetch EN
+                try {
+                    const enVids = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}/videos?api_key=${API_KEY}&language=en-US`);
+                    rVideos = (enVids.results || []).filter(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
+                } catch(e) {}
+
+                // Step 2: Fallback semua bahasa jika EN kosong
                 if (rVideos.length === 0) {
                     try {
                         const rawVids = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${id}/videos?api_key=${API_KEY}&include_video_language=en,hi,ko,ja,zh,th,id,ar,ru,null`);
                         rVideos = (rawVids.results || []).filter(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
-                    } catch(e3) {}
+                    } catch(e) {}
                 }
-                rVideos.sort((a, b) => { const sA=(a.official?2:0)+(a.type==='Trailer'?1:0); const sB=(b.official?2:0)+(b.type==='Trailer'?1:0); return sB-sA; });
-                // Filter portrait + deduplikasi ketat
-                const portraitKw = /\bvertical\b|\bportrait\b|9\s*:\s*16|\breels?\b|\btiktok\b|#shorts|\bshorts\b/i;
-                rVideos = rVideos.filter(v => !portraitKw.test(v.name || ''));
-                const seenR = new Set(); rVideos = rVideos.filter(v => { if(seenR.has(v.key)) return false; seenR.add(v.key); return true; });
-                const seenTR = new Set(); rVideos = rVideos.filter(v => { const n=(v.name||'').toLowerCase().replace(/[^a-z0-9\s]/g,'').trim(); if(!n||seenTR.has(n)) return !n; seenTR.add(n); return true; });
-                if(rVideos.length > 0) {
-                    // Filter trailer error sebelum render
-                    const embeddableR = await filterEmbeddableVideos(rVideos.slice(0, 10));
-                    let vidsToDisplay = embeddableR.slice(0, 6);
-                    vidsToDisplay.forEach((v, i) => {
-                        const embedUrl = `https://www.youtube.com/embed/${v.key}?enablejsapi=1&autoplay=${i===0?1:0}&rel=0&modestbranding=1&mute=0&playsinline=1`;
-                        const slideDiv = document.createElement('div');
-                        slideDiv.className = 'carousel-slide';
-                        slideDiv.innerHTML = `<iframe id="vid-${i}" src="${embedUrl}" class="w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe><div class="yt-overlay-mask" onclick="void(0)"></div>`;
-                        track.appendChild(slideDiv);
-                        setTimeout(() => { slideDiv.classList.add('playing'); }, 3000);
-                        if(vidsToDisplay.length > 1) { dots.innerHTML += `<div class="dot w-1.5 h-1.5 rounded-full ${i===currentIdx?'bg-blue-500':'bg-zinc-700'}"></div>`; }
-                    });
-                    const soR = document.getElementById('swipeOverlay');
-                    soR.style.display = vidsToDisplay.length > 1 ? 'block' : 'none';
-                    soR.style.pointerEvents = 'auto'; // aktifkan kembali untuk swipe trailer
-                } else {
+
+                if (rVideos.length === 0) {
                     const fallbackUrl = buildEmbedUrl(type, id, 1, 1, 1);
                     track.innerHTML = `<div class="carousel-slide"><iframe id="player-frame" src="${fallbackUrl}" class="w-full h-full" allowfullscreen allow="autoplay; fullscreen; picture-in-picture"></iframe></div>`;
                     document.getElementById('swipeOverlay').style.display = 'none';
+                    return;
                 }
+
+                // ===== FILTER SAMA SEPERTI openModal =====
+
+                // Filter bahasa: prioritas EN, buang non-EN jika ada EN
+                const enOnly = rVideos.filter(v => !v.iso_639_1 || v.iso_639_1 === 'en' || v.iso_639_1 === 'null');
+                if (enOnly.length > 0) rVideos = enOnly;
+
+                // Filter akun non-English (nama video mengandung script/keyword regional)
+                const nonLatinPat = /[\u0900-\u097F\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7FF\u0600-\u06FF]/;
+                const regionalKw = /\b(korean?|hindi|japanese|arabic|chinese|thai|dubbed?|dub|indo(nesia)?|malay|tamil|telugu|bengali|urdu|persian|turkish|greek|hebrew|polish|dutch|swedish|norwegian|danish|finnish|czech|hungarian|romanian|bulgarian|serbian|croatian|slovak|catalan|tagalog|vietnamese)\b/i;
+                const cleanEn = rVideos.filter(v => {
+                    const nm = v.name || '';
+                    return !nonLatinPat.test(nm) && !regionalKw.test(nm);
+                });
+                // Hanya gunakan filter jika ada hasil — jangan sampai kosong
+                if (cleanEn.length > 0) rVideos = cleanEn;
+
+                // Sort: Official Trailer > Official Teaser > Trailer > Teaser
+                rVideos.sort((a, b) => {
+                    const sA = (a.official ? 2 : 0) + (a.type === 'Trailer' ? 1 : 0);
+                    const sB = (b.official ? 2 : 0) + (b.type === 'Trailer' ? 1 : 0);
+                    return sB - sA;
+                });
+
+                // Filter portrait/vertical
+                const portraitKw = /\bvertical\b|\bportrait\b|9\s*:\s*16|\breels?\b|\btiktok\b|#shorts|\bshorts\b/i;
+                rVideos = rVideos.filter(v => !portraitKw.test(v.name || ''));
+
+                // Deduplikasi key
+                const seenKeys = new Set();
+                rVideos = rVideos.filter(v => { if (seenKeys.has(v.key)) return false; seenKeys.add(v.key); return true; });
+
+                // Deduplikasi judul (sama dari channel berbeda)
+                function normTitle(name) {
+                    return (name || '').toLowerCase()
+                        .replace(/\s*[\|\-–]\s*.{0,30}$/, '')
+                        .replace(/\s+(v\d+|version|ver\.?|#\d+|\[.*?\]|\(.*?\))\s*$/gi, '')
+                        .replace(/\b(official|trailer|teaser|clip|hd|4k|subtitled?|dubbed?|sub|dub)\b/gi, '')
+                        .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+                }
+                const seenTitles = new Set();
+                rVideos = rVideos.filter(v => {
+                    const norm = normTitle(v.name);
+                    if (!norm) return true;
+                    if (seenTitles.has(norm)) return false;
+                    seenTitles.add(norm); return true;
+                });
+
+                // Filter embeddable + render
+                const embeddable = await filterEmbeddableVideos(rVideos.slice(0, 10));
+                const vidsToDisplay = embeddable.slice(0, 6);
+
+                if (vidsToDisplay.length === 0) {
+                    const fallbackUrl = buildEmbedUrl(type, id, 1, 1, 1);
+                    track.innerHTML = `<div class="carousel-slide"><iframe id="player-frame" src="${fallbackUrl}" class="w-full h-full" allowfullscreen allow="autoplay; fullscreen; picture-in-picture"></iframe></div>`;
+                    document.getElementById('swipeOverlay').style.display = 'none';
+                    return;
+                }
+
+                vidsToDisplay.forEach((v, i) => {
+                    const embedUrl = `https://www.youtube.com/embed/${v.key}?enablejsapi=1&autoplay=${i===0?1:0}&rel=0&modestbranding=1&mute=0&playsinline=1`;
+                    const slideDiv = document.createElement('div');
+                    slideDiv.className = 'carousel-slide';
+                    slideDiv.innerHTML = `<iframe id="vid-${i}" src="${embedUrl}" class="w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe><div class="yt-overlay-mask" onclick="void(0)"></div>`;
+                    track.appendChild(slideDiv);
+                    setTimeout(() => { slideDiv.classList.add('playing'); }, 3000);
+                    if (vidsToDisplay.length > 1) {
+                        dots.innerHTML += `<div class="dot w-1.5 h-1.5 rounded-full ${i===0?'bg-blue-500':'bg-zinc-700'}"></div>`;
+                    }
+                });
+
+                const soR = document.getElementById('swipeOverlay');
+                soR.style.display = vidsToDisplay.length > 1 ? 'block' : 'none';
+                soR.style.pointerEvents = 'auto';
+
             } catch(e) { console.error(e); }
         }
 
@@ -5247,7 +5332,7 @@
                 <div class="mb-1">
                     <span class="ig-username" id="mModalTitle"></span>
                     <span id="mDesc" class="ig-caption"></span>
-                    <div class="mt-1"><span id="mToggleBtn" class="toggle-btn hidden" onclick="handleToggleDesc()">selengkapnya</span></div>
+                    <div class="mt-1"><span id="mToggleBtn" class="toggle-btn hidden" onclick="handleToggleDesc()">selengkapnya</span><p id="mTranslateBtn" class="hidden" onclick="handleTranslate()" style="margin-top:2px;font-size:11px;color:#fff;font-weight:700;cursor:pointer;display:inline-block"></p></div>
                 </div>
                 <div id="mInfoGrid" class="minfo-grid" style="display:none"></div>
                 <div id="mPosterGallery" class="poster-gallery-section" style="display:none">
@@ -5255,7 +5340,6 @@
                     <div class="poster-gallery-scroll" id="mPosterScroll"></div>
                 </div>
 <div id="mHashtags" style="display:none"></div>
-                <p id="mTranslateBtn" class="hidden" onclick="handleTranslate()" style="margin-top:4px"></p>
                 <div id="mDateDisplay" style="display:none"></div>
                 <div id="seriesControl" class="hidden mt-4 p-4 bg-zinc-950 rounded-2xl border border-zinc-900">
                     <div class="flex justify-between items-center mb-4">
@@ -5565,12 +5649,27 @@
         function closeLightbox() {
             const modal = document.getElementById('lightboxModal');
             if (modal) modal.style.display = 'none';
-            document.body.style.overflow = 'hidden';
-            history.replaceState({view:'modal'}, '');
-            // Un-mute trailer setelah lightbox ditutup
-            document.querySelectorAll('#carouselTrack iframe').forEach(f => {
-                try { f.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*'); } catch(e) {}
-            });
+            
+            // Cek apakah dibuka dari actor photos
+            if (window._prevGalleryImages !== undefined) {
+                // Restore gallery film
+                window._galleryImages = window._prevGalleryImages;
+                window._prevGalleryImages = undefined;
+                // Kembalikan actor photos modal
+                const actorPhotos = document.getElementById('actorPhotosModal');
+                if (actorPhotos) actorPhotos.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = 'hidden';
+                // Un-mute dan auto-play trailer aktif setelah lightbox ditutup
+                document.querySelectorAll('#carouselTrack iframe').forEach((f, i) => {
+                    try { f.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*'); } catch(e) {}
+                    // Play hanya iframe yang aktif (currentIdx)
+                    if (i === currentIdx) {
+                        try { f.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*'); } catch(e) {}
+                    }
+                });
+            }
         }
 
         async function downloadLbImage() {
@@ -5578,37 +5677,54 @@
             if (!images[_lbIdx]) return;
             const img = images[_lbIdx];
             const size = img.isBackdrop ? 'original' : 'w780';
-            const url = `https://image.tmdb.org/t/p/${size}${img.path}`;
+            const directUrl = `https://image.tmdb.org/t/p/${size}${img.path}`;
             const btn = document.getElementById('lbDownloadBtn');
             if (btn) btn.className = 'fa-solid fa-spinner fa-spin lb-download';
+            
+            // Coba via CORS proxy untuk download langsung
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(directUrl)}`;
+            const filename = 'amnesfubbia' + img.path.replace(/[^a-zA-Z0-9.]/g, '_') + '.jpg';
+            
             try {
-                // Gunakan canvas untuk bypass CORS TMDb
-                const imgEl = new Image();
-                imgEl.crossOrigin = 'anonymous';
-                imgEl.onload = () => {
+                const resp = await fetch(proxyUrl);
+                if (!resp.ok) throw new Error('proxy failed');
+                const blob = await resp.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+            } catch(e) {
+                // Fallback: canvas dengan proxy
+                try {
+                    const imgEl = new Image();
+                    imgEl.crossOrigin = 'anonymous';
+                    await new Promise((res, rej) => {
+                        imgEl.onload = res;
+                        imgEl.onerror = rej;
+                        imgEl.src = proxyUrl;
+                    });
                     const canvas = document.createElement('canvas');
                     canvas.width = imgEl.naturalWidth;
                     canvas.height = imgEl.naturalHeight;
                     canvas.getContext('2d').drawImage(imgEl, 0, 0);
                     canvas.toBlob(blob => {
-                        if (!blob) { window.open(url, '_blank'); return; }
+                        if (!blob) { window.open(directUrl, '_blank'); return; }
                         const a = document.createElement('a');
                         a.href = URL.createObjectURL(blob);
-                        a.download = 'amnesfubbia' + img.path.replace(/[^a-zA-Z0-9.]/g, '_') + '.jpg';
+                        a.download = filename;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
                         setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-                        if (btn) btn.className = 'fa-solid fa-download lb-download';
                     }, 'image/jpeg', 0.95);
-                };
-                imgEl.onerror = () => {
-                    window.open(url, '_blank');
-                    if (btn) btn.className = 'fa-solid fa-download lb-download';
-                };
-                imgEl.src = url;
-            } catch(e) {
-                window.open(url, '_blank');
+                } catch(e2) {
+                    // Final fallback: buka di tab baru, user bisa long-press save
+                    window.open(directUrl, '_blank');
+                }
+            } finally {
                 if (btn) btn.className = 'fa-solid fa-download lb-download';
             }
         }
@@ -5768,8 +5884,13 @@
                     grid.innerHTML = '<div class="actor-photos-loading" style="color:#555">Foto tidak tersedia</div>';
                     return;
                 }
-                grid.innerHTML = profiles.map(p => `
-                    <div class="actor-photo-item">
+                // Simpan ke _actorGallery untuk lightbox khusus aktor
+                window._actorGallery = profiles.map(p => ({
+                    path: p.file_path,
+                    isBackdrop: false
+                }));
+                grid.innerHTML = profiles.map((p, idx) => `
+                    <div class="actor-photo-item" onclick="openActorLightbox(${idx})">
                         <img src="https://image.tmdb.org/t/p/w342${p.file_path}" loading="lazy" onload="this.style.opacity=1">
                     </div>`).join('');
             } catch(e) {
@@ -5777,9 +5898,52 @@
             }
         }
 
+        // Lightbox khusus foto pemeran (pakai lightbox yang sudah ada)
+        function openActorLightbox(startIdx) {
+            // Simpan gallery film ke temp, ganti dengan actor gallery
+            window._prevGalleryImages = window._galleryImages;
+            window._galleryImages = window._actorGallery || [];
+            if (!window._galleryImages.length) return;
+            
+            // Sembunyikan actor photos modal sementara
+            document.getElementById('actorPhotosModal').style.display = 'none';
+            
+            // Buka lightbox
+            const modal = document.getElementById('lightboxModal');
+            const track = document.getElementById('lbTrack');
+            const dots = document.getElementById('lbDots');
+            _lbIdx = Math.max(0, Math.min(startIdx, window._galleryImages.length - 1));
+            modal.style.display = 'flex';
+            // Tidak perlu push history lagi karena actorPhotos sudah push
+
+            track.innerHTML = window._galleryImages.map((img, i) => {
+                return `<div class="lb-slide" style="min-width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000">
+                    <img src="https://image.tmdb.org/t/p/w780${img.path}"
+                         loading="${Math.abs(i - _lbIdx) <= 1 ? 'eager' : 'lazy'}"
+                         draggable="false"
+                         style="max-width:100vw;max-height:100vh;object-fit:contain;display:block">
+                </div>`;
+            }).join('');
+
+            if (window._galleryImages.length > 1 && window._galleryImages.length <= 15) {
+                dots.innerHTML = window._galleryImages.map(() => `<div class="lb-dot"></div>`).join('');
+                dots.style.display = 'flex';
+            } else { dots.style.display = 'none'; }
+
+            lbGoTo(_lbIdx, false);
+            setupLbSwipe();
+        }
+
+
         function closeActorPhotos() {
             const m = document.getElementById('actorPhotosModal');
             if (m) m.style.display = 'none';
+            // Clear actor gallery agar tidak polusi lightbox film berikutnya
+            window._actorGallery = null;
+            if (window._prevGalleryImages !== undefined) {
+                window._galleryImages = window._prevGalleryImages;
+                window._prevGalleryImages = undefined;
+            }
             // Cek apakah actor modal masih terbuka
             if (document.getElementById('actorModal').style.display === 'block') {
                 document.body.style.overflow = 'hidden';
@@ -5825,12 +5989,30 @@
             if (!wrapper || !scroll) return;
             if (!items.length) { wrapper.style.display = 'none'; return; }
             wrapper.style.display = 'block';
-            scroll.innerHTML = items.map(item => `
+            scroll.innerHTML = items.map((item, idx) => `
                 <div class="recently-item" onclick="openModal(${item.id}, '${item.type}')">
                     <img class="recently-img" src="https://image.tmdb.org/t/p/w185${item.poster || ''}"
                          onerror="this.style.background='#1a1a1a'" loading="lazy">
+                    <div class="recently-del" onclick="event.stopPropagation(); deleteRecentlyViewed(${idx})">
+                        <i class="fa-solid fa-xmark"></i>
+                    </div>
                 </div>`).join('');
         }
+
+        function deleteRecentlyViewed(idx) {
+            let items = JSON.parse(localStorage.getItem(RV_KEY) || '[]');
+            items.splice(idx, 1);
+            localStorage.setItem(RV_KEY, JSON.stringify(items));
+            renderRecentlyViewed();
+        }
+
+        function clearAllRecentlyViewed() {
+            localStorage.removeItem(RV_KEY);
+            renderRecentlyViewed();
+        }
+
+        // ===== LIBRARY FILTER (removed) =====
+
 
         window.addEventListener('DOMContentLoaded', () => { renderRecentlyViewed(); });
 
