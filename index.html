@@ -5484,7 +5484,7 @@
                 case 6: url = `https://player.videasy.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
                 case 7: url = `https://www.nontongo.win/embed/${type}/${id}${seriesSuffix}`; break;
                 case 8: url = `https://vidfast.pro/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 9: url = `https://autoembed.co/${type}?tmdb=${id}${seriesSuffix}`; break;
+                case 9: url = `https://autoembed.co/${type}?tmdb=${id}${type==='tv'?`/${s}/${e}`:''}`; break;
                 case 10: url = `https://vidsrc.cc/v2/embed/${type}/${id}${type==='tv'?`?s=${s}&e=${e}`:''}`; break;
                 case 11: url = `https://111movies.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
                 case 12: url = `https://www.2embed.cc/embed${type==='tv'?'/tv':''}/${id}${type==='tv'?`?s=${s}&e=${e}`:''}`; break;
