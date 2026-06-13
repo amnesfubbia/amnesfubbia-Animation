@@ -3943,7 +3943,7 @@
             try {
                 const [details, credits] = await Promise.all([
                     fetchWithCache(`https://api.themoviedb.org/3/person/${actorId}?api_key=${API_KEY}&language=id-ID`),
-                    fetchWithCache(`https://api.themoviedb.org/3/person/${actorId}/combined_credits?api_key=${API_KEY}&language=id-ID`)
+                    fetchWithCache(`https://api.themoviedb.org/3/person/${actorId}/combined_credits?api_key=${API_KEY}&language=en-US`)
                 ]);
 
                 const imgPath = details.profile_path ? `https://image.tmdb.org/t/p/w500${details.profile_path}` : 'amnesfubbia.png';
@@ -5441,7 +5441,7 @@
             const grid = document.getElementById('searchOverlay').style.display === 'block' ? document.getElementById('searchGrid') : document.getElementById('feedGrid');
             if(isNew) { page = 1; grid.innerHTML = ''; }
             let url;
-            if(currentCastId) { url = `https://api.themoviedb.org/3/person/${currentCastId}/combined_credits?api_key=${API_KEY}&language=id-ID`; }
+            if(currentCastId) { url = `https://api.themoviedb.org/3/person/${currentCastId}/combined_credits?api_key=${API_KEY}&language=en-US`; }
             else if(searchQuery) { 
                 if (searchTabType === 'multi' || searchTabType === 'person') {
                     url = `https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(searchQuery)}&api_key=${API_KEY}&page=${page}&include_adult=false`;
@@ -6439,8 +6439,8 @@
                 case 27: url = `https://mgeb.top/embed/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
                 case 28: url = `https://vidsrc.cc/v2/embed/${type}/${id}${type==='tv'?`?s=${s}&e=${e}`:''}`; break;
                 case 29: url = `https://vidsrc.me/embed/${type}?tmdb=${id}${type==='tv'?`&s=${s}&e=${e}`:''}`; break;
-                case 30: url = `https://vid.me/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 31: url = `https://vrapid.co/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 30: url = `https://embed.smashystream.com/playere.php?tmdb=${id}${type==='tv'?`&season=${s}&episode=${e}`:''}`; break;
+                case 31: url = `https://anyembed.xyz/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
                 case 99: url = `https://www.dailymotion.com/embed/video/${currentDailymotionId}`; break;     default: url = `https://player.videasy.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`;
             }
             return url.replace("http://", "https://");
@@ -7424,25 +7424,40 @@
             _exploreLoading = false;
         }
 
-        function renderExploreGrid(grid, items, forceType) {
+        async function renderExploreGrid(grid, items, forceType) {
             if (!items.length) {
                 grid.innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;color:#666;font-size:11px">No results.</div>`;
                 return;
             }
-            grid.innerHTML = items.map(m => {
+            // Resolve Latin titles first
+            const resolved = await Promise.all(items.map(async m => {
                 const type = forceType || m.media_type || 'movie';
-                const title = m.title || m.name || '';
+                let title = m.title || m.name || '';
+                const origTitle = m.original_title || m.original_name || '';
+                if (isNonLatin(title)) {
+                    if (!isNonLatin(origTitle)) { title = origTitle; }
+                    else {
+                        try {
+                            const en = await fetchWithCache(`https://api.themoviedb.org/3/${type}/${m.id}?api_key=${API_KEY}&language=en-US`);
+                            const enT = en.title || en.name || '';
+                            if (enT && !isNonLatin(enT)) title = enT;
+                        } catch {}
+                    }
+                }
+                return { ...m, _latinTitle: title, _type: type };
+            }));
+            grid.innerHTML = resolved.map(m => {
                 const rating = m.vote_average ? m.vote_average.toFixed(1) : '';
-                return `<div onclick="openModal(${m.id},'${type}');closeSearch()" style="position:relative;border-radius:10px;overflow:hidden;cursor:pointer;background:#111;aspect-ratio:16/9">
+                return `<div onclick="openModal(${m.id},'${m._type}');closeSearch()" style="position:relative;border-radius:10px;overflow:hidden;cursor:pointer;background:#111;aspect-ratio:16/9">
                     <img src="https://image.tmdb.org/t/p/w300${m.backdrop_path}" loading="lazy"
                          onload="this.style.opacity=1"
                          style="opacity:0;width:100%;height:100%;object-fit:cover;transition:opacity 0.3s">
                     <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.1) 55%,transparent 100%)"></div>
                     <div style="position:absolute;bottom:0;left:0;right:0;padding:7px 8px">
-                        <div style="font-size:10px;font-weight:700;color:#fff;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
+                        <div style="font-size:10px;font-weight:700;color:#fff;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m._latinTitle}</div>
                         ${rating ? `<div style="font-size:9px;color:#f5c518;font-weight:700;margin-top:2px">★ ${rating}</div>` : ''}
                     </div>
-                    ${type === 'tv' ? `<div style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.55);border-radius:4px;font-size:8px;font-weight:700;color:#aaa;padding:2px 5px;backdrop-filter:blur(4px)">TV</div>` : ''}
+                    ${m._type === 'tv' ? `<div style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.55);border-radius:4px;font-size:8px;font-weight:700;color:#aaa;padding:2px 5px;backdrop-filter:blur(4px)">TV</div>` : ''}
                 </div>`;
             }).join('');
         }
