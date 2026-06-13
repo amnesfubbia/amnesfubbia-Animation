@@ -5452,7 +5452,7 @@
             else if(currentType === 'multi') { url = `https://api.themoviedb.org/3/trending/all/day?api_key=${API_KEY}&language=en-US&page=${page}`; }
             else {
                 let endpoint = (currentType === 'tv') ? 'discover/tv' : 'discover/movie';
-                url = `https://api.themoviedb.org/3/${endpoint}?api_key=${API_KEY}&language=id-ID&page=${page}&include_adult=false&sort_by=popularity.desc`;
+                url = `https://api.themoviedb.org/3/${endpoint}?api_key=${API_KEY}&language=en-US&page=${page}&include_adult=false&sort_by=popularity.desc`;
                 if(currentCountry) url += `&with_origin_country=${currentCountry}`;
                 if(currentRating) {
                     const rMin = parseFloat(currentRating);
@@ -6682,7 +6682,7 @@
                 return; 
             } 
             const promises = items.map(i => 
-                fetchWithCache(`https://api.themoviedb.org/3/${i.type}/${i.id}?api_key=${API_KEY}&language=id-ID`)
+                fetchWithCache(`https://api.themoviedb.org/3/${i.type}/${i.id}?api_key=${API_KEY}&language=en-US`)
                     .then(r => ({ ...r, _savedType: i.type }))
             ); 
             const results = await Promise.all(promises); 
