@@ -3759,7 +3759,7 @@
                 html += `<div class="ls-srv-btn ${active}" onclick="event.stopPropagation(); lsChangeServer(${i}, this)">Server ${i}</div>`;
             }
             if (currentDailymotionId) {
-                html += `<div class="ls-srv-btn ${activeServerIdx === 21 ? 'active-link' : ''}" onclick="event.stopPropagation(); lsChangeServer(21, this)">Trailer</div>`;
+                html += `<div class="ls-srv-btn ${activeServerIdx === 99 ? 'active-link' : ''}" onclick="event.stopPropagation(); lsChangeServer(99, this)">Trailer</div>`;
             }
             scroll.innerHTML = html;
         }
@@ -3789,7 +3789,7 @@
             document.querySelectorAll('.ls-srv-btn').forEach(b => b.classList.remove('active-link'));
             el.classList.add('active-link');
             // update pill text
-            document.getElementById('lsServerPill').innerText = srvIdx === 21 ? 'Trailer' : `Server ${srvIdx}`;
+            document.getElementById('lsServerPill').innerText = srvIdx === 99 ? 'Trailer' : `Server ${srvIdx}`;
             // update subtitle
             document.getElementById('lsSubtitle').innerText = `Server ${srvIdx} · amnesfubbia`;
             // play
@@ -3949,9 +3949,17 @@
                 const imgPath = details.profile_path ? `https://image.tmdb.org/t/p/w500${details.profile_path}` : 'amnesfubbia.png';
                 document.getElementById('actorPic').src = imgPath;
                 document.getElementById('actorCoverBlur').style.backgroundImage = `url('${imgPath}')`;
-                document.getElementById('actorHeaderTitle').innerText = details.name;
-                document.getElementById('actorName').innerText = details.name;
-                document.getElementById('actorNameBio').innerText = details.name;
+
+                // Nama aktor — gunakan Latin dari also_known_as jika nama asli non-Latin
+                let actorDisplayName = details.name;
+                if (isNonLatin(details.name)) {
+                    const aka = details.also_known_as || [];
+                    const latinName = aka.find(n => n && !isNonLatin(n));
+                    if (latinName) actorDisplayName = latinName;
+                }
+                document.getElementById('actorHeaderTitle').innerText = actorDisplayName;
+                document.getElementById('actorName').innerText = actorDisplayName;
+                document.getElementById('actorNameBio').innerText = actorDisplayName;
                 document.getElementById('actorDept').innerText = details.known_for_department || 'Pemeran';
 
                 // Age
@@ -6384,7 +6392,7 @@
         function changeServer(srvIdx, el) {
             activeServerIdx = srvIdx;
             document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active-link'));
-            if(srvIdx !== 21) el.classList.add('active-link');
+            if(srvIdx !== 99) el.classList.add('active-link');
             const url = buildEmbedUrl(window.currentMediaType, window.currentMediaId, activeSeason, activeEpisode, activeServerIdx);
             playVid(url);
         }
@@ -6404,36 +6412,36 @@
             switch(srv) {
                 case 1:  url = `https://player.videasy.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}?autoplay=1${type==='tv'?'&autoNext=true':''}`; break;
                 case 2:  url = `https://vidlink.pro/${type}/${id}${seriesSuffix}`; break;
-                case 3:  url = `https://vidrock.net/embed/${type}/${id}${seriesSuffix}`; break;
-                case 4:  url = `https://vidfast.pro/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 5:  url = `https://vidnest.fun/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 6:  url = `https://111movies.com/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 3:  url = `https://vidfast.pro/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 4:  url = `https://vidrock.net/embed/${type}/${id}${seriesSuffix}`; break;
+                case 5:  url = `https://vidup.to/${type}/${id}${type==='tv'?`/${s}/${e}`:''}?autoPlay=true`; break;
+                case 6:  url = `https://vidcore.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}?autoPlay=true`; break;
                 case 7:  url = `https://player.vidzee.wtf/embed/${type}/${id}${seriesSuffix}`; break;
                 case 8:  url = `https://vidstorm.ru/embed/${type}/${id}${seriesSuffix}`; break;
-                case 9:  url = `https://vidsrc.wtf/1/${type}/${id}${seriesSuffix}`; break;
-                case 10: url = `https://vidsync.xyz/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}?autoPlay=true${type==='tv'?'&autoNext=true':''}`; break;
-                case 11: url = `https://vidup.to/${type}/${id}${type==='tv'?`/${s}/${e}`:''}?autoPlay=true`; break;
-                case 12: url = `https://vidcore.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}?autoPlay=true`; break;
-                case 13: url = `https://vixsrc.to/${type}/${id}${type==='tv'?`/${s}/${e}`:''}/`; break;
-                case 14: url = `https://cinesrc.st/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 15: url = `https://vidlux.xyz/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 9:  url = `https://vidsync.xyz/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}?autoPlay=true${type==='tv'?'&autoNext=true':''}`; break;
+                case 10: url = `https://vixsrc.to/${type}/${id}${type==='tv'?`/${s}/${e}`:''}/`; break;
+                case 11: url = `https://vidking.net/embed/${type}/${id}${seriesSuffix}`; break;
+                case 12: url = `https://vidlux.xyz/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 13: url = `https://111movies.com/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 14: url = `https://vidnest.fun/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 15: url = `https://vidsrc.wtf/1/${type}/${id}${seriesSuffix}`; break;
                 case 16: url = `https://nontongo.win/embed/${type}/${id}${seriesSuffix}`; break;
-                case 17: url = `https://111movies.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 18: url = `https://vidfast.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 19: url = `https://vidsrcme.ru/embed/${type}/${id}${seriesSuffix}`; break;
-                case 20: url = `https://vidking.net/embed/${type}/${id}${seriesSuffix}`; break;
+                case 17: url = `https://cinesrc.st/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 18: url = `https://111movies.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 19: url = `https://vidfast.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 20: url = `https://vidsrcme.ru/embed/${type}/${id}${seriesSuffix}`; break;
                 case 21: url = `https://multiembed.mov/?video_id=${id}&tmdb=1${type==='tv'?`&s=${s}&e=${e}`:''}`; break;
                 case 22: url = `https://2embed.cc/embed/${type}/${id}${seriesSuffix}`; break;
                 case 23: url = `https://vidsrc.ru/${type}/${currentImdbId || id}${type==='tv'?`?s=${s}&e=${e}`:''}`; break;
                 case 24: url = `https://player.vidify.top/embed/${type}/${id}${type==='tv'?`?s=${s}&e=${e}`:''}`; break;
-                case 25: url = `https://player.vidplus.to/embed/${type}/${id}${seriesSuffix}`; break;
-                case 26: url = `https://warezcdn.site/${type==='tv'?'serie':'filme'}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 27: url = `https://player.cinezo.live/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 28: url = `https://mgeb.top/embed/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
-                case 29: url = `https://vidsrc.cc/v2/embed/${type}/${id}${type==='tv'?`?s=${s}&e=${e}`:''}`; break;
-                case 30: url = `https://vidsrc.me/embed/${type}?tmdb=${id}${type==='tv'?`&s=${s}&e=${e}`:''}`; break;
-                case 31: url = `https://moviesmod.club/embed/${type}/${id}${seriesSuffix}`; break;
-                case 99: url = `https://www.dailymotion.com/embed/video/${currentDailymotionId}`; break;     default: url = `https://vidrock.net/embed/${type}/${id}${seriesSuffix}`;
+                case 25: url = `https://warezcdn.site/${type==='tv'?'serie':'filme'}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 26: url = `https://player.cinezo.live/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 27: url = `https://mgeb.top/embed/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 28: url = `https://vidsrc.cc/v2/embed/${type}/${id}${type==='tv'?`?s=${s}&e=${e}`:''}`; break;
+                case 29: url = `https://vidsrc.me/embed/${type}?tmdb=${id}${type==='tv'?`&s=${s}&e=${e}`:''}`; break;
+                case 30: url = `https://vid.me/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 31: url = `https://vrapid.co/embed/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`; break;
+                case 99: url = `https://www.dailymotion.com/embed/video/${currentDailymotionId}`; break;     default: url = `https://player.videasy.net/${type}/${id}${type==='tv'?`/${s}/${e}`:''}`;
             }
             return url.replace("http://", "https://");
         }
