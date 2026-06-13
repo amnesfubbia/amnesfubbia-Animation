@@ -5549,25 +5549,28 @@
 
         function renderGrid(items, grid) { 
             const fragment = document.createDocumentFragment();
+            // Dedup: kumpulkan ID yang sudah ada di grid
+            const existingIds = new Set();
+            grid.querySelectorAll('.post-card[data-id]').forEach(c => existingIds.add(c.dataset.id));
             items.forEach(m => { 
-                if(!m.poster_path || m.media_type === 'person') return; 
+                if(!m.poster_path || m.media_type === 'person') return;
+                if(existingIds.has(String(m.id))) return; // skip duplikat
+                existingIds.add(String(m.id));
                 let mType = m.media_type;
                 if(!mType) { if(currentType === 'tv') mType = 'tv'; else mType = 'movie'; }
                 const card = document.createElement('div'); 
                 card.className = 'post-card'; 
+                card.dataset.id = m.id;
                 card.onclick = function() { openModal(m.id, mType); }; 
                 const _rd = m.release_date || m.first_air_date || '';
                 const _nb = isNewRelease(_rd) ? '<div class="badge-new">NEW</div>' : '';
                 let _title = m.title || m.name || '';
-                // Selalu coba resolve ke EN title
                 {
                     const origT = m.original_title || m.original_name || '';
-                    // Jika title non-latin, coba original_title dulu
                     if (isNonLatin(_title)) {
                         if (origT && !isNonLatin(origT)) {
                             _title = origT;
                         } else {
-                            // Fetch EN dari API async, update card setelah render
                             fetchWithCache(`https://api.themoviedb.org/3/${mType}/${m.id}?api_key=${API_KEY}&language=en-US`).then(d => {
                                 const enT = d.title || d.name || '';
                                 const origEN = d.original_title || d.original_name || '';
@@ -5579,8 +5582,6 @@
                             }).catch(()=>{});
                         }
                     }
-                    // Juga cek jika title masih dalam bahasa lain (terjemahan Indonesia dll)
-                    // Kita tidak bisa deteksi bahasa secara pasti, tapi original_title lebih aman
                 }
                 const _year = (m.release_date || m.first_air_date || '').split('-')[0];
                 const _rating = m.vote_average ? m.vote_average.toFixed(1) : '';
@@ -5864,7 +5865,7 @@
                 }
 
                 vidsToDisplay.forEach((v, i) => {
-                    const embedUrl = `https://www.youtube.com/embed/${v.key}?enablejsapi=1&autoplay=${i===0?1:0}&rel=0&modestbranding=1&mute=0&playsinline=1`;
+                    const embedUrl = `https://www.youtube.com/embed/${v.key}?enablejsapi=1&autoplay=${i===0?1:0}&rel=0&modestbranding=1&mute=0&playsinline=1&controls=0&showinfo=0&iv_load_policy=3`;
                     const slideDiv = document.createElement('div');
                     slideDiv.className = 'carousel-slide';
                     slideDiv.innerHTML = `<iframe id="vid-${i}" src="${embedUrl}" class="w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe><div class="yt-overlay-mask" onclick="void(0)"></div>`;
@@ -6049,7 +6050,7 @@
                 const embeddable = await filterEmbeddableVideos(allVideos.slice(0, 10));
                 let vidsToDisplay = embeddable.slice(0, 6);
                 vidsToDisplay.forEach((v, i) => { 
-                    const embedUrl = `https://www.youtube.com/embed/${v.key}?enablejsapi=1&autoplay=${i===0?1:0}&rel=0&modestbranding=1&mute=0&playsinline=1`;
+                    const embedUrl = `https://www.youtube.com/embed/${v.key}?enablejsapi=1&autoplay=${i===0?1:0}&rel=0&modestbranding=1&mute=0&playsinline=1&controls=0&showinfo=0&iv_load_policy=3`;
                     const slideDiv = document.createElement('div');
                     slideDiv.className = 'carousel-slide';
                     slideDiv.innerHTML = `<iframe id="vid-${i}" src="${embedUrl}" class="w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe><div class="yt-overlay-mask" onclick="void(0)"></div>`;
